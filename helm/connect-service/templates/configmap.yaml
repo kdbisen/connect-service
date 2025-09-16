@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "connect-service.fullname" . }}-config
+  labels:
+    {{- include "connect-service.labels" . | nindent 4 }}
+data:
+  application-openshift.yml: |
+    server:
+      port: 8080
+      servlet:
+        context-path: /api/v1
+
+    spring:
+      application:
+        name: {{ .Values.app.name }}
+      
+      data:
+        mongodb:
+          uri: mongodb://{{ .Values.mongodb.auth.username }}:${MONGODB_PASSWORD}@{{ include "mongodb.fullname" . }}:27017/{{ .Values.mongodb.auth.database }}
+          auto-index-creation: true
+      
+      security:
+        oauth2:
+          client:
+            registration:
+              apigee:
+                client-id: ${APIGEE_CLIENT_ID}
+                client-secret: ${APIGEE_CLIENT_SECRET}
+                authorization-grant-type: client_credentials
+                scope: read,write
+              fenergo:
+                client-id: ${FENERGO_CLIENT_ID}
+                client-secret: ${FENERGO_CLIENT_SECRET}
+                authorization-grant-type: client_credentials
+                scope: api
+            provider:
+              apigee:
+                token-uri: {{ .Values.oauth2.apigee.tokenUri }}
+              fenergo:
+                token-uri: {{ .Values.oauth2.fenergo.tokenUri }}
+      
+      cache:
+        type: caffeine
+        caffeine:
+          spec: maximumSize=1000,expireAfterWrite=5m
+
+      integration:
+        mongodb:
+          database: {{ .Values.mongodb.auth.database }}
+
+    # Vault Configuration
+    vault:
+      enabled: {{ .Values.vault.enabled }}
+      address: {{ .Values.vault.address }}
+      role: {{ .Values.vault.role }}
+      auth-path: {{ .Values.vault.authPath }}
+      secret-path: {{ .Values.vault.secretPath }}
+      cert-path: {{ .Values.vault.certPath }}
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus,loggers
+      endpoint:
+        health:
+          show-details: always
+          probes:
+            enabled: true
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+
+    logging:
+      level:
+        com.adyanta.connect: {{ .Values.logging.level.com.adyanta.connect | default "DEBUG" }}
+        org.springframework.integration: INFO
+        org.springframework.security: INFO
+        org.springframework.vault: DEBUG
+      pattern:
+        console: "{{ .Values.logging.pattern.console }}"
+        file: "{{ .Values.logging.pattern.console }}"
+      file:
+        name: "{{ .Values.logging.file.name }}"
+        max-size: "{{ .Values.logging.file.maxSize }}"
+        max-history: {{ .Values.logging.file.maxHistory }}
+        total-size-cap: "{{ .Values.logging.file.totalSizeCap }}"
+
+    # External API Configuration
+    external:
+      apis:
+        xml-to-json:
+          base-url: {{ .Values.externalApis.xmlToJson.baseUrl }}
+          timeout: {{ .Values.externalApis.xmlToJson.timeout }}
+          retry-attempts: {{ .Values.externalApis.xmlToJson.retryAttempts }}
+        fenergo:
+          base-url: {{ .Values.externalApis.fenergo.baseUrl }}
+          timeout: {{ .Values.externalApis.fenergo.timeout }}
+          retry-attempts: {{ .Values.externalApis.fenergo.retryAttempts }}
+
+    # Processing Configuration
+    processing:
+      async:
+        core-pool-size: {{ .Values.processing.async.corePoolSize }}
+        max-pool-size: {{ .Values.processing.async.maxPoolSize }}
+        queue-capacity: {{ .Values.processing.async.queueCapacity }}
+      retry:
+        max-attempts: {{ .Values.processing.retry.maxAttempts }}
+        backoff-delay: {{ .Values.processing.retry.backoffDelay }}
+        max-delay: {{ .Values.processing.retry.maxDelay }}
+
+    # OpenAPI/Swagger Configuration
+    springdoc:
+      api-docs:
+        path: /v3/api-docs
+      swagger-ui:
+        path: /swagger-ui.html
+        operationsSorter: method
+        tagsSorter: alpha
+        display-request-duration: true
+        display-operation-id: true
+        show-extensions: true
+        show-common-extensions: true
+        try-it-out-enabled: true
+        filter: true
+      show-actuator: true

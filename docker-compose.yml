@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  connect-service:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/connect-service
+      - APIGEE_CLIENT_ID=${APIGEE_CLIENT_ID}
+      - APIGEE_CLIENT_SECRET=${APIGEE_CLIENT_SECRET}
+      - APIGEE_TOKEN_URI=${APIGEE_TOKEN_URI}
+      - FENERGO_CLIENT_ID=${FENERGO_CLIENT_ID}
+      - FENERGO_CLIENT_SECRET=${FENERGO_CLIENT_SECRET}
+      - FENERGO_TOKEN_URI=${FENERGO_TOKEN_URI}
+      - XML_TO_JSON_API_URL=${XML_TO_JSON_API_URL}
+      - FENERGO_API_URL=${FENERGO_API_URL}
+    depends_on:
+      - mongodb
+    networks:
+      - connect-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/connect/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=connect-service
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - connect-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - connect-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - connect-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  mongodb_data:
+  grafana_data:
+
+networks:
+  connect-network:
+    driver: bridge

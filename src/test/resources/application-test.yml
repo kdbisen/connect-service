@@ -1,0 +1,58 @@
+server:
+  port: 0
+
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/connect-service-test}
+      auto-index-creation: true
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          apigee:
+            client-id: test-apigee-client
+            client-secret: test-apigee-secret
+            authorization-grant-type: client_credentials
+            scope: read,write
+          fenergo:
+            client-id: test-fenergo-client
+            client-secret: test-fenergo-secret
+            authorization-grant-type: client_credentials
+            scope: api
+        provider:
+          apigee:
+            token-uri: http://localhost:8080/mock/apigee/token
+          fenergo:
+            token-uri: http://localhost:8080/mock/fenergo/token
+
+# External API Configuration for testing
+external:
+  apis:
+    xml-to-json:
+      base-url: http://localhost:8080/mock/xml-to-json
+      timeout: 5000
+      retry-attempts: 1
+    fenergo:
+      base-url: http://localhost:8080/mock/fenergo
+      timeout: 5000
+      retry-attempts: 1
+
+# Processing Configuration for testing
+processing:
+  async:
+    core-pool-size: 2
+    max-pool-size: 5
+    queue-capacity: 100
+  retry:
+    max-attempts: 1
+    backoff-delay: 100
+    max-delay: 1000
+
+logging:
+  level:
+    com.adyanta.connect: DEBUG
+    org.springframework.integration: WARN
+    org.springframework.security: WARN
+    org.springframework.web.reactive: WARN

@@ -1,0 +1,27 @@
+apiVersion: v2
+name: connect-service
+description: Connect Service for XML/JSON processing with external API integration
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - spring-boot
+  - microservice
+  - xml-processing
+  - json-processing
+  - api-gateway
+home: https://github.com/adyanta/connect-service
+sources:
+  - https://github.com/adyanta/connect-service
+maintainers:
+  - name: Adyanta Team
+    email: team@adyanta.com
+dependencies:
+  - name: mongodb
+    version: 13.6.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: mongodb.enabled
+  - name: vault
+    version: 0.22.0
+    repository: https://helm.releases.hashicorp.com
+    condition: vault.enabled

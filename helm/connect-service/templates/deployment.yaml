@@ -1,0 +1,169 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "connect-service.fullname" . }}
+  labels:
+    {{- include "connect-service.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "connect-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "connect-service.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "connect-service.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: vault-init
+          image: vault:1.15.0
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              vault auth -method=kubernetes -path={{ .Values.vault.authPath }} role={{ .Values.vault.role }}
+              vault kv get -field=mongodb_password {{ .Values.vault.secretPath }}/mongodb > /vault/secrets/mongodb_password
+              vault kv get -field=apigee_client_id {{ .Values.vault.secretPath }}/oauth2 > /vault/secrets/apigee_client_id
+              vault kv get -field=apigee_client_secret {{ .Values.vault.secretPath }}/oauth2 > /vault/secrets/apigee_client_secret
+              vault kv get -field=fenergo_client_id {{ .Values.vault.secretPath }}/oauth2 > /vault/secrets/fenergo_client_id
+              vault kv get -field=fenergo_client_secret {{ .Values.vault.secretPath }}/oauth2 > /vault/secrets/fenergo_client_secret
+              vault write -field=certificate {{ .Values.vault.certPath }} common_name=connect-service > /vault/secrets/tls.crt
+              vault write -field=private_key {{ .Values.vault.certPath }} common_name=connect-service > /vault/secrets/tls.key
+          env:
+            - name: VAULT_ADDR
+              value: {{ .Values.vault.address }}
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-token
+                  key: token
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets
+              readOnly: false
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: management
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/live
+              port: management
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/ready
+              port: management
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "openshift"
+            # Advanced MongoDB + SSL via env vars (read by application-openshift.yml > mongodb.*)
+            - name: MONGODB_URI
+              value: "mongodb://{{ .Values.mongodb.auth.username }}@{{ include "mongodb.fullname" . }}:27017/{{ .Values.mongodb.auth.database }}?authSource=admin"
+            - name: MONGODB_DATABASE
+              value: "{{ .Values.mongodb.auth.database }}"
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "connect-service.fullname" . }}-secrets
+                  key: mongodb-password
+            - name: MONGODB_SSL_ENABLED
+              value: "{{ .Values.mongodb.ssl.enabled | default false }}"
+            - name: MONGODB_KEYSTORE_PATH
+              value: "/vault/secrets/mongo-client-keystore.p12"
+            - name: MONGODB_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "connect-service.fullname" . }}-secrets
+                  key: mongodb-keystore-password
+            - name: MONGODB_KEYSTORE_TYPE
+              value: "{{ .Values.mongodb.ssl.keyStoreType | default "PKCS12" }}"
+            - name: MONGODB_TRUSTSTORE_PATH
+              value: "/vault/secrets/mongo-truststore.p12"
+            - name: MONGODB_TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "connect-service.fullname" . }}-secrets
+                  key: mongodb-truststore-password
+            - name: MONGODB_TRUSTSTORE_TYPE
+              value: "{{ .Values.mongodb.ssl.trustStoreType | default "PKCS12" }}"
+            - name: MONGODB_SSL_DISABLE_HOSTNAME_VERIFICATION
+              value: "{{ .Values.mongodb.ssl.disableHostNameVerification | default false }}"
+            - name: APIGEE_CLIENT_ID
+              value: "$(cat /vault/secrets/apigee_client_id)"
+            - name: APIGEE_CLIENT_SECRET
+              value: "$(cat /vault/secrets/apigee_client_secret)"
+            - name: FENERGO_CLIENT_ID
+              value: "$(cat /vault/secrets/fenergo_client_id)"
+            - name: FENERGO_CLIENT_SECRET
+              value: "$(cat /vault/secrets/fenergo_client_secret)"
+            - name: XML_TO_JSON_API_URL
+              value: {{ .Values.externalApis.xmlToJson.baseUrl | quote }}
+            - name: FENERGO_API_URL
+              value: {{ .Values.externalApis.fenergo.baseUrl | quote }}
+            - name: VAULT_ADDR
+              value: {{ .Values.vault.address }}
+            - name: VAULT_ROLE
+              value: {{ .Values.vault.role }}
+            - name: VAULT_AUTH_PATH
+              value: {{ .Values.vault.authPath }}
+            - name: VAULT_SECRET_PATH
+              value: {{ .Values.vault.secretPath }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets
+              readOnly: true
+            - name: logs
+              mountPath: /app/logs
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"]
+      volumes:
+        - name: vault-secrets
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

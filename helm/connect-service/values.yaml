@@ -1,0 +1,189 @@
+# Default values for connect-service
+# This is a YAML-formatted file.
+
+replicaCount: 2
+
+image:
+  repository: connect-service
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/actuator/prometheus"
+
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: connect-service.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: connect-service-tls
+      hosts:
+        - connect-service.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Application Configuration
+app:
+  name: connect-service
+  version: 1.0.0
+  environment: production
+  
+# Vault Configuration
+vault:
+  enabled: true
+  address: "https://vault.example.com"
+  role: "connect-service"
+  authPath: "kubernetes"
+  secretPath: "secret/connect-service"
+  certPath: "pki/issue/connect-service"
+  
+# MongoDB Configuration
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: ""
+    username: "connect-service"
+    password: ""
+    database: "connect-service"
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: "gp2"
+  resources:
+  ssl:
+    enabled: false
+    keyStoreType: PKCS12
+    trustStoreType: PKCS12
+    disableHostNameVerification: false
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# External API Configuration
+externalApis:
+  xmlToJson:
+    baseUrl: "https://api.example.com/xml-to-json"
+    timeout: 30000
+    retryAttempts: 3
+  fenergo:
+    baseUrl: "https://api.fenergo.com/v1"
+    timeout: 60000
+    retryAttempts: 3
+
+# OAuth2 Configuration
+oauth2:
+  apigee:
+    clientId: ""
+    clientSecret: ""
+    tokenUri: "https://api.apigee.com/oauth/token"
+  fenergo:
+    clientId: ""
+    clientSecret: ""
+    tokenUri: "https://api.fenergo.com/oauth/token"
+
+# Processing Configuration
+processing:
+  async:
+    corePoolSize: 10
+    maxPoolSize: 50
+    queueCapacity: 1000
+  retry:
+    maxAttempts: 3
+    backoffDelay: 1000
+    maxDelay: 10000
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    path: "/actuator/prometheus"
+  grafana:
+    enabled: true
+    dashboard:
+      enabled: true
+
+# Security Configuration
+security:
+  cors:
+    allowedOrigins: "*"
+    allowedMethods: "GET,POST,PUT,DELETE,OPTIONS"
+    allowedHeaders: "*"
+    allowCredentials: true
+    maxAge: 3600
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.adyanta.connect: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+  file:
+    name: "/app/logs/connect-service.log"
+    maxSize: "100MB"
+    maxHistory: 30
+    totalSizeCap: "3GB"
