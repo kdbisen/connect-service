@@ -1,0 +1,89 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: connect-service
+  
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/connect-service
+      auto-index-creation: true
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          apigee:
+            client-id: ${APIGEE_CLIENT_ID:default-client-id}
+            client-secret: ${APIGEE_CLIENT_SECRET:default-secret}
+            authorization-grant-type: client_credentials
+            scope: read,write
+          fenergo:
+            client-id: ${FENERGO_CLIENT_ID:default-fenergo-client}
+            client-secret: ${FENERGO_CLIENT_SECRET:default-fenergo-secret}
+            authorization-grant-type: client_credentials
+            scope: api
+        provider:
+          apigee:
+            token-uri: ${APIGEE_TOKEN_URI:https://api.apigee.com/oauth/token}
+          fenergo:
+            token-uri: ${FENERGO_TOKEN_URI:https://api.fenergo.com/oauth/token}
+  
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=5m
+
+  integration:
+    mongodb:
+      database: connect-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.adyanta.connect: DEBUG
+    org.springframework.integration: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+  file:
+    name: logs/connect-service.log
+
+# External API Configuration
+external:
+  apis:
+    xml-to-json:
+      base-url: ${XML_TO_JSON_API_URL:https://api.example.com/xml-to-json}
+      timeout: 30000
+      retry-attempts: 3
+    fenergo:
+      base-url: ${FENERGO_API_URL:https://api.fenergo.com/v1}
+      timeout: 60000
+      retry-attempts: 3
+
+# Processing Configuration
+processing:
+  async:
+    core-pool-size: 10
+    max-pool-size: 50
+    queue-capacity: 1000
+  retry:
+    max-attempts: 3
+    backoff-delay: 1000
+    max-delay: 10000

@@ -61,7 +61,7 @@ securityDefinitions:
       connect:admin: Access to administrative operations
 
 paths:
-  /connect/process:
+  /v1/connect/process:
     post:
       tags:
         - Connect
@@ -156,7 +156,7 @@ paths:
               correlationId: "550e8400-e29b-41d4-a716-446655440000"
               timestamp: "2024-01-15T10:30:00Z"
 
-  /connect/status/{requestId}:
+  /v1/connect/status/{requestId}:
     get:
       tags:
         - Connect
@@ -219,7 +219,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
 
-  /connect/health:
+  /v1/connect/health:
     get:
       tags:
         - Health
@@ -292,7 +292,7 @@ paths:
                 errorRate: 1.0
                 activeConnections: 0
 
-  /connect/runs:
+  /v1/connect/runs:
     get:
       tags:
         - Admin
@@ -346,7 +346,7 @@ paths:
           schema:
             $ref: '#/definitions/ProcessingRunsResponse'
 
-  /connect/runs/{requestId}/timeline:
+  /v1/connect/runs/{requestId}/timeline:
     get:
       tags:
         - Admin
@@ -375,7 +375,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorResponse'
 
-  /connect/runs/{requestId}/retry:
+  /v1/connect/runs/{requestId}/retry:
     post:
       tags:
         - Admin

@@ -1,0 +1,296 @@
+[
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "SUCCESS",
+        "referenceId": "FEN-123456789",
+        "processingId": "proc-789012",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data": {
+          "customerId": "CUST-001",
+          "riskScore": 25,
+          "complianceStatus": "APPROVED",
+          "kycStatus": "VERIFIED",
+          "amlStatus": "CLEAR"
+        },
+        "metadata": {
+          "processingTime": 1250,
+          "rulesApplied": 15,
+          "checksPerformed": 8
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      },
+      "body": {
+        "type": "JSON",
+        "contains": "CUSTOMER_ONBOARDING"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "SUCCESS",
+        "referenceId": "FEN-CUST-001",
+        "processingId": "proc-cust-001",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data": {
+          "customerId": "CUST-001",
+          "riskScore": 15,
+          "complianceStatus": "APPROVED",
+          "kycStatus": "VERIFIED",
+          "amlStatus": "CLEAR",
+          "onboardingStatus": "COMPLETED"
+        },
+        "metadata": {
+          "processingTime": 2100,
+          "rulesApplied": 25,
+          "checksPerformed": 12,
+          "workflow": "CUSTOMER_ONBOARDING"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      },
+      "body": {
+        "type": "JSON",
+        "contains": "DOCUMENT_VERIFICATION"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "SUCCESS",
+        "referenceId": "FEN-DOC-001",
+        "processingId": "proc-doc-001",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data": {
+          "documentId": "DOC-001",
+          "verificationStatus": "VERIFIED",
+          "documentType": "PASSPORT",
+          "authenticityScore": 95,
+          "qualityScore": 88
+        },
+        "metadata": {
+          "processingTime": 1800,
+          "rulesApplied": 18,
+          "checksPerformed": 10,
+          "workflow": "DOCUMENT_VERIFICATION"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      },
+      "body": {
+        "type": "JSON",
+        "contains": "RISK_ASSESSMENT"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "SUCCESS",
+        "referenceId": "FEN-RISK-001",
+        "processingId": "proc-risk-001",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data": {
+          "riskId": "RISK-001",
+          "riskScore": 35,
+          "riskLevel": "MEDIUM",
+          "riskFactors": ["HIGH_VALUE_TRANSACTION", "CROSS_BORDER"],
+          "recommendation": "MANUAL_REVIEW"
+        },
+        "metadata": {
+          "processingTime": 3200,
+          "rulesApplied": 45,
+          "checksPerformed": 20,
+          "workflow": "RISK_ASSESSMENT"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      },
+      "body": {
+        "type": "JSON",
+        "contains": "BATCH_PROCESSING"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "SUCCESS",
+        "referenceId": "FEN-BATCH-001",
+        "processingId": "proc-batch-001",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data": {
+          "batchId": "BATCH-001",
+          "totalItems": 100,
+          "processedItems": 100,
+          "successfulItems": 95,
+          "failedItems": 5,
+          "batchStatus": "COMPLETED"
+        },
+        "metadata": {
+          "processingTime": 15000,
+          "rulesApplied": 200,
+          "checksPerformed": 100,
+          "workflow": "BATCH_PROCESSING"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      },
+      "body": {
+        "type": "JSON",
+        "contains": "INVALID_DATA"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 400,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "ERROR",
+        "error": "VALIDATION_ERROR",
+        "message": "Invalid data provided for processing",
+        "details": "Required field 'customerId' is missing",
+        "timestamp": "2024-01-15T10:30:00Z"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/fenergo/process",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "Authorization": [".*"]
+      },
+      "body": {
+        "type": "JSON",
+        "contains": "HIGH_RISK"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "REQUIRES_REVIEW",
+        "referenceId": "FEN-REVIEW-001",
+        "processingId": "proc-review-001",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data": {
+          "riskId": "RISK-HIGH-001",
+          "riskScore": 85,
+          "riskLevel": "HIGH",
+          "riskFactors": ["SANCTIONS_MATCH", "PEP_EXPOSURE", "HIGH_VALUE"],
+          "recommendation": "MANUAL_REVIEW_REQUIRED",
+          "reviewRequired": true,
+          "reviewDeadline": "2024-01-16T10:30:00Z"
+        },
+        "metadata": {
+          "processingTime": 4500,
+          "rulesApplied": 60,
+          "checksPerformed": 30,
+          "workflow": "RISK_ASSESSMENT"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/health"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["fenergo-mock"]
+      },
+      "body": {
+        "status": "UP",
+        "service": "fenergo-service",
+        "version": "2.0.0",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "uptime": "72h 15m 30s",
+        "features": {
+          "customerOnboarding": true,
+          "documentVerification": true,
+          "riskAssessment": true,
+          "complianceCheck": true,
+          "batchProcessing": true
+        }
+      }
+    }
+  }
+]

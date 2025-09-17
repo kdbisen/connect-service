@@ -1,0 +1,801 @@
+openapi: 3.0.3
+info:
+  title: Connect Service API v2
+  description: |
+    Enhanced Spring Boot reactive microservice for orchestrating data flow between multiple external services.
+    This is version 2.0 of the Connect Service API with advanced features and improved capabilities.
+    
+    ## New Features in v2.0
+    - **Enhanced Validation**: Improved request validation with detailed error messages
+    - **Batch Processing**: Support for processing multiple requests in batches
+    - **Advanced Monitoring**: Real-time metrics and enhanced observability
+    - **Improved Error Handling**: Better error reporting and recovery mechanisms
+    - **Multi-Connector Support**: Enhanced connector registry and management
+    - **Route Executor**: YAML-defined processing routes
+    - **Visual UI Console**: Web-based monitoring interface (coming soon)
+    
+    ## API Versioning
+    - **Current Version**: 2.0
+    - **Supported Versions**: 1.0, 2.0
+    - **Deprecated Versions**: None
+    - **Migration Guide**: https://docs.adyanta.com/connect-service/migration/v1-to-v2
+    
+    ## Authentication
+    All requests must be authenticated via Apigee Gateway using JWT tokens.
+    
+    ## Request Processing Flow
+    1. Receive XML/JSON payload with request type enum
+    2. Enhanced validation and preprocessing
+    3. Convert XML to JSON (if needed)
+    4. Call external service based on request type
+    5. Call Fenergo API with processed data
+    6. Store all data in MongoDB with enhanced audit trail
+    7. Provide real-time monitoring and metrics
+  version: 2.0.0
+  contact:
+    name: Adyanta Connect Service Team
+    email: support@adyanta.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://connect-service.adyanta.com/v2
+    description: Production server - API v2
+  - url: https://connect-service-dev.adyanta.com/v2
+    description: Development server - API v2
+  - url: http://localhost:8080/v2
+    description: Local development server - API v2
+
+tags:
+  - name: Connect v2
+    description: Enhanced connect service operations
+  - name: Health v2
+    description: Enhanced health check and monitoring endpoints
+  - name: Admin v2
+    description: Enhanced administrative operations
+  - name: Version
+    description: API version information
+
+security:
+  - ApigeeAuth: []
+
+paths:
+  /v2/connect/process:
+    post:
+      tags:
+        - Connect v2
+      summary: Process a connect request (Enhanced v2)
+      description: |
+        Enhanced processing of connect requests with improved validation, error handling, and monitoring capabilities.
+        This is version 2.0 of the process endpoint with additional features.
+        
+        **New Features in v2.0:**
+        - Enhanced request validation with detailed error messages
+        - Batch processing support
+        - Real-time metrics and monitoring
+        - Improved error handling and recovery
+        - Advanced connector management
+      operationId: processConnectRequestV2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectRequestV2'
+            examples:
+              enhanced_customer_onboarding:
+                summary: Enhanced Customer Onboarding Request
+                description: Example customer onboarding request with v2.0 features
+                value:
+                  requestType: "CUSTOMER_ONBOARDING"
+                  payload: |
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <customer>
+                      <personalInfo>
+                        <firstName>John</firstName>
+                        <lastName>Doe</lastName>
+                        <email>john.doe@example.com</email>
+                        <phone>+1-555-0123</phone>
+                        <dateOfBirth>1990-01-15</dateOfBirth>
+                      </personalInfo>
+                      <address>
+                        <street>123 Main Street</street>
+                        <city>New York</city>
+                        <state>NY</state>
+                        <zipCode>10001</zipCode>
+                        <country>USA</country>
+                      </address>
+                      <kycDocuments>
+                        <document type="PASSPORT" number="P123456789" expiryDate="2030-12-31"/>
+                        <document type="DRIVER_LICENSE" number="DL987654321" expiryDate="2028-06-15"/>
+                      </kycDocuments>
+                    </customer>
+                  metadata:
+                    source: "mobile_app"
+                    version: "2.0"
+                    clientId: "mobile_client_001"
+                    features:
+                      enhancedValidation: true
+                      batchProcessing: false
+                      advancedMonitoring: true
+              batch_processing:
+                summary: Batch Processing Request
+                description: Example batch processing request with v2.0 features
+                value:
+                  requestType: "BATCH_PROCESSING"
+                  payload:
+                    batchId: "batch_001"
+                    items:
+                      - id: "item_001"
+                        type: "CUSTOMER_ONBOARDING"
+                        data: "<customer><name>John Doe</name></customer>"
+                      - id: "item_002"
+                        type: "DOCUMENT_VERIFICATION"
+                        data: "<document><type>passport</type></document>"
+                  metadata:
+                    source: "batch_processor"
+                    version: "2.0"
+                    clientId: "batch_client_001"
+                    features:
+                      enhancedValidation: true
+                      batchProcessing: true
+                      batchSize: 100
+      responses:
+        '202':
+          description: Request accepted for enhanced processing
+          headers:
+            X-Correlation-Id:
+              description: Unique correlation ID for tracking this request
+              schema:
+                type: string
+                example: "550e8400-e29b-41d4-a716-446655440000"
+            X-API-Version:
+              description: API version used
+              schema:
+                type: string
+                example: "2.0"
+            X-API-Features:
+              description: Available features for this version
+              schema:
+                type: string
+                example: "enhanced-validation,batch-processing,advanced-monitoring"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectResponseV2'
+              examples:
+                accepted:
+                  summary: Request Accepted v2
+                  description: Request has been accepted for enhanced processing
+                  value:
+                    requestId: "req_123456789_v2"
+                    status: "ACCEPTED"
+                    message: "Request accepted for enhanced processing"
+                    correlationId: "550e8400-e29b-41d4-a716-446655440000"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    version: "2.0"
+                    features:
+                      enhancedValidation: true
+                      batchProcessing: false
+                      advancedMonitoring: true
+
+  /v2/connect/status/{requestId}:
+    get:
+      tags:
+        - Connect v2
+      summary: Get request processing status (Enhanced v2)
+      description: |
+        Retrieve enhanced status and processing details of a processing request with additional monitoring information.
+        This is version 2.0 of the status endpoint with improved metrics and monitoring.
+      operationId: getRequestStatusV2
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          description: Unique identifier of the processing request
+          schema:
+            type: string
+            example: "req_123456789_v2"
+      responses:
+        '200':
+          description: Request status retrieved successfully with enhanced details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestStatusResponseV2'
+              examples:
+                processing:
+                  summary: Request Processing v2
+                  description: Request is currently being processed with enhanced monitoring
+                  value:
+                    requestId: "req_123456789_v2"
+                    status: "PROCESSING"
+                    currentStep: "EXTERNAL_API_CALL"
+                    progress: 60
+                    message: "Processing external API call with enhanced monitoring"
+                    correlationId: "550e8400-e29b-41d4-a716-446655440000"
+                    createdAt: "2024-01-15T10:30:00Z"
+                    updatedAt: "2024-01-15T10:32:00Z"
+                    version: "2.0"
+                    enhancedMetrics:
+                      processingTimeMs: 120000
+                      memoryUsageMB: 96
+                      cpuUsagePercent: 12.3
+                      externalApiCalls: 1
+                      validationPassed: true
+                    steps:
+                      - step: "XML_TO_JSON_CONVERSION"
+                        status: "COMPLETED"
+                        completedAt: "2024-01-15T10:30:30Z"
+                        duration: 500
+                      - step: "EXTERNAL_API_CALL"
+                        status: "IN_PROGRESS"
+                        startedAt: "2024-01-15T10:30:30Z"
+                      - step: "FENERGO_API_CALL"
+                        status: "PENDING"
+                      - step: "COMPLETION"
+                        status: "PENDING"
+
+  /v2/connect/health:
+    get:
+      tags:
+        - Health v2
+      summary: Enhanced health check endpoint
+      description: |
+        Check the enhanced health status of the connect service and its dependencies with detailed metrics.
+        This is version 2.0 of the health endpoint with improved monitoring capabilities.
+      operationId: healthCheckV2
+      responses:
+        '200':
+          description: Service is healthy with enhanced metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponseV2'
+              examples:
+                healthy:
+                  summary: Service Healthy v2
+                  description: All components are healthy with enhanced metrics
+                  value:
+                    status: "UP"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    version: "2.0"
+                    enhancedMetrics:
+                      uptime: "72h 15m 30s"
+                      memoryUsage: "512MB"
+                      cpuUsage: "25.5%"
+                      activeConnections: 15
+                      requestsPerMinute: 120
+                      averageResponseTime: "250ms"
+                      errorRate: "0.5%"
+                    features:
+                      enhancedValidation: true
+                      batchProcessing: true
+                      advancedMonitoring: true
+                      realTimeMetrics: true
+                    components:
+                      database:
+                        status: "UP"
+                        details:
+                          connectionPool: "ACTIVE"
+                          activeConnections: 5
+                          maxConnections: 20
+                      externalServices:
+                        status: "UP"
+                        details:
+                          xmlToJsonService: "UP"
+                          fenergoService: "UP"
+                          apigeeGateway: "UP"
+                      vault:
+                        status: "UP"
+                        details:
+                          connection: "ACTIVE"
+                          secretsAccessible: true
+
+  /v2/connect/version:
+    get:
+      tags:
+        - Version
+      summary: Get API version information
+      description: |
+        Retrieve detailed information about the current API version and available features.
+        This endpoint provides comprehensive version information including features, deprecation status, and migration guidance.
+      operationId: getApiVersion
+      responses:
+        '200':
+          description: API version information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVersionInfo'
+              examples:
+                version_info:
+                  summary: API Version Information
+                  description: Complete API version information
+                  value:
+                    version: "2.0"
+                    apiName: "Connect Service API"
+                    description: "Enhanced API for processing XML/JSON requests"
+                    features:
+                      enhancedValidation: true
+                      batchProcessing: true
+                      advancedMonitoring: true
+                      realTimeMetrics: true
+                      improvedErrorHandling: true
+                    deprecationInfo:
+                      v1Deprecated: false
+                      v1SupportedUntil: "2025-12-31"
+                      migrationGuide: "https://docs.adyanta.com/connect-service/migration/v1-to-v2"
+                    changelog:
+                      - "Enhanced request validation"
+                      - "Added batch processing capabilities"
+                      - "Improved error handling and reporting"
+                      - "Added real-time metrics"
+                      - "Enhanced monitoring and observability"
+
+components:
+  securitySchemes:
+    ApigeeAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Authentication via Apigee Gateway using JWT tokens.
+        Include the Apigee token in the Authorization header as: `Bearer <token>`
+
+  schemas:
+    ConnectRequestV2:
+      type: object
+      required:
+        - requestType
+        - payload
+      properties:
+        requestType:
+          $ref: '#/components/schemas/RequestType'
+        payload:
+          oneOf:
+            - type: string
+              description: XML payload as string
+            - type: object
+              description: JSON payload as object
+        metadata:
+          type: object
+          description: Enhanced metadata for the request
+          properties:
+            source:
+              type: string
+              description: Source system identifier
+              example: "mobile_app"
+            version:
+              type: string
+              description: API version
+              example: "2.0"
+            clientId:
+              type: string
+              description: Client identifier
+              example: "mobile_client_001"
+            correlationId:
+              type: string
+              description: Optional correlation ID for tracking
+              example: "550e8400-e29b-41d4-a716-446655440000"
+            features:
+              type: object
+              description: v2.0 specific features
+              properties:
+                enhancedValidation:
+                  type: boolean
+                  description: Enable enhanced validation
+                  example: true
+                batchProcessing:
+                  type: boolean
+                  description: Enable batch processing
+                  example: false
+                advancedMonitoring:
+                  type: boolean
+                  description: Enable advanced monitoring
+                  example: true
+
+    ConnectResponseV2:
+      type: object
+      required:
+        - requestId
+        - status
+        - message
+        - correlationId
+        - timestamp
+        - version
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier for the processing request
+          example: "req_123456789_v2"
+        status:
+          $ref: '#/components/schemas/ProcessingStatus'
+        message:
+          type: string
+          description: Status message
+          example: "Request accepted for enhanced processing"
+        correlationId:
+          type: string
+          description: Correlation ID for tracking
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp
+          example: "2024-01-15T10:30:00Z"
+        version:
+          type: string
+          description: API version used
+          example: "2.0"
+        features:
+          type: object
+          description: Features enabled for this request
+          properties:
+            enhancedValidation:
+              type: boolean
+              example: true
+            batchProcessing:
+              type: boolean
+              example: false
+            advancedMonitoring:
+              type: boolean
+              example: true
+
+    RequestStatusResponseV2:
+      type: object
+      required:
+        - requestId
+        - status
+        - correlationId
+        - createdAt
+        - updatedAt
+        - version
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier for the processing request
+          example: "req_123456789_v2"
+        status:
+          $ref: '#/components/schemas/ProcessingStatus'
+        currentStep:
+          type: string
+          description: Current processing step
+          example: "EXTERNAL_API_CALL"
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Processing progress percentage
+          example: 60
+        message:
+          type: string
+          description: Current status message
+          example: "Processing external API call with enhanced monitoring"
+        correlationId:
+          type: string
+          description: Correlation ID for tracking
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        createdAt:
+          type: string
+          format: date-time
+          description: Request creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:32:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: Completion timestamp (if completed)
+          example: "2024-01-15T10:35:00Z"
+        totalDuration:
+          type: integer
+          description: Total processing duration in milliseconds
+          example: 300000
+        version:
+          type: string
+          description: API version used
+          example: "2.0"
+        enhancedMetrics:
+          type: object
+          description: Enhanced metrics for v2.0
+          properties:
+            processingTimeMs:
+              type: integer
+              description: Processing time in milliseconds
+              example: 120000
+            memoryUsageMB:
+              type: number
+              description: Memory usage in MB
+              example: 96
+            cpuUsagePercent:
+              type: number
+              description: CPU usage percentage
+              example: 12.3
+            externalApiCalls:
+              type: integer
+              description: Number of external API calls made
+              example: 1
+            validationPassed:
+              type: boolean
+              description: Whether validation passed
+              example: true
+        error:
+          $ref: '#/components/schemas/ErrorDetails'
+        steps:
+          type: array
+          description: Processing steps with their status
+          items:
+            $ref: '#/components/schemas/ProcessingStep'
+
+    HealthResponseV2:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, DEGRADED]
+          description: Overall service health status
+          example: "UP"
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: "2024-01-15T10:30:00Z"
+        version:
+          type: string
+          description: API version
+          example: "2.0"
+        enhancedMetrics:
+          type: object
+          description: Enhanced metrics for v2.0
+          properties:
+            uptime:
+              type: string
+              description: Service uptime
+              example: "72h 15m 30s"
+            memoryUsage:
+              type: string
+              description: Memory usage
+              example: "512MB"
+            cpuUsage:
+              type: string
+              description: CPU usage
+              example: "25.5%"
+            activeConnections:
+              type: integer
+              description: Number of active connections
+              example: 15
+            requestsPerMinute:
+              type: integer
+              description: Requests per minute
+              example: 120
+            averageResponseTime:
+              type: string
+              description: Average response time
+              example: "250ms"
+            errorRate:
+              type: string
+              description: Error rate percentage
+              example: "0.5%"
+        features:
+          type: object
+          description: Available features
+          properties:
+            enhancedValidation:
+              type: boolean
+              example: true
+            batchProcessing:
+              type: boolean
+              example: true
+            advancedMonitoring:
+              type: boolean
+              example: true
+            realTimeMetrics:
+              type: boolean
+              example: true
+        components:
+          type: object
+          description: Individual component health status
+          properties:
+            database:
+              $ref: '#/components/schemas/ComponentHealth'
+            externalServices:
+              $ref: '#/components/schemas/ComponentHealth'
+            vault:
+              $ref: '#/components/schemas/ComponentHealth'
+
+    ApiVersionInfo:
+      type: object
+      required:
+        - version
+        - apiName
+        - description
+      properties:
+        version:
+          type: string
+          description: API version
+          example: "2.0"
+        apiName:
+          type: string
+          description: API name
+          example: "Connect Service API"
+        description:
+          type: string
+          description: API description
+          example: "Enhanced API for processing XML/JSON requests"
+        features:
+          type: object
+          description: Available features
+          properties:
+            enhancedValidation:
+              type: boolean
+              example: true
+            batchProcessing:
+              type: boolean
+              example: true
+            advancedMonitoring:
+              type: boolean
+              example: true
+            realTimeMetrics:
+              type: boolean
+              example: true
+            improvedErrorHandling:
+              type: boolean
+              example: true
+        deprecationInfo:
+          type: object
+          description: Deprecation information
+          properties:
+            v1Deprecated:
+              type: boolean
+              example: false
+            v1SupportedUntil:
+              type: string
+              format: date
+              example: "2025-12-31"
+            migrationGuide:
+              type: string
+              format: uri
+              example: "https://docs.adyanta.com/connect-service/migration/v1-to-v2"
+        changelog:
+          type: array
+          description: List of changes in this version
+          items:
+            type: string
+          example:
+            - "Enhanced request validation"
+            - "Added batch processing capabilities"
+            - "Improved error handling and reporting"
+            - "Added real-time metrics"
+            - "Enhanced monitoring and observability"
+
+    # Reuse existing schemas from v1
+    RequestType:
+      type: string
+      enum:
+        - CUSTOMER_ONBOARDING
+        - DOCUMENT_VERIFICATION
+        - RISK_ASSESSMENT
+        - COMPLIANCE_CHECK
+        - GENERIC
+        - BATCH_PROCESSING
+      description: |
+        Type of request being processed:
+        - **CUSTOMER_ONBOARDING**: Customer onboarding workflow
+        - **DOCUMENT_VERIFICATION**: Document verification process
+        - **RISK_ASSESSMENT**: Risk assessment workflow
+        - **COMPLIANCE_CHECK**: Compliance verification
+        - **GENERIC**: Generic processing workflow
+        - **BATCH_PROCESSING**: Batch processing workflow (v2.0 feature)
+      example: "CUSTOMER_ONBOARDING"
+
+    ProcessingStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+      description: |
+        Current processing status:
+        - **PENDING**: Request is queued for processing
+        - **PROCESSING**: Request is currently being processed
+        - **COMPLETED**: Request has been completed successfully
+        - **FAILED**: Request processing failed
+        - **CANCELLED**: Request processing was cancelled
+      example: "PROCESSING"
+
+    ProcessingStep:
+      type: object
+      required:
+        - step
+        - status
+      properties:
+        step:
+          type: string
+          description: Step name
+          example: "XML_TO_JSON_CONVERSION"
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED]
+          description: Step status
+          example: "COMPLETED"
+        startedAt:
+          type: string
+          format: date-time
+          description: Step start timestamp
+          example: "2024-01-15T10:30:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: Step completion timestamp
+          example: "2024-01-15T10:30:30Z"
+        failedAt:
+          type: string
+          format: date-time
+          description: Step failure timestamp
+          example: "2024-01-15T10:32:00Z"
+        duration:
+          type: integer
+          description: Step duration in milliseconds
+          example: 500
+        error:
+          type: string
+          description: Error message if step failed
+          example: "Connection timeout"
+
+    ComponentHealth:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, DEGRADED]
+          description: Component health status
+          example: "UP"
+        details:
+          type: object
+          description: Additional component details
+          additionalProperties: true
+          example:
+            connectionPool: "ACTIVE"
+            activeConnections: 5
+            maxConnections: 20
+
+    ErrorDetails:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "EXTERNAL_API_ERROR"
+        message:
+          type: string
+          description: Error message
+          example: "Connection timeout to external service"
+        details:
+          type: string
+          description: Additional error details
+          example: "Service unavailable: timeout after 30 seconds"
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-01-15T10:32:00Z"
+
+externalDocs:
+  description: Connect Service API v2 Documentation
+  url: https://docs.adyanta.com/connect-service/v2

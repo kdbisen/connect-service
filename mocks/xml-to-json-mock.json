@@ -1,0 +1,125 @@
+[
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/xml-to-json",
+      "headers": {
+        "Content-Type": ["application/xml"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["xml-to-json-mock"]
+      },
+      "body": {
+        "type": "JSON",
+        "content": "{\"customer\":{\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"phone\":\"+1-555-0123\"}}",
+        "conversionTime": 150,
+        "originalSize": 245,
+        "convertedSize": 156
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/xml-to-json",
+      "headers": {
+        "Content-Type": ["application/xml"]
+      },
+      "body": {
+        "type": "XML",
+        "contains": "<customer>"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["xml-to-json-mock"]
+      },
+      "body": {
+        "type": "JSON",
+        "content": "{\"customer\":{\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"phone\":\"+1-555-0123\",\"address\":{\"street\":\"123 Main Street\",\"city\":\"New York\",\"state\":\"NY\",\"zipCode\":\"10001\",\"country\":\"USA\"}}}",
+        "conversionTime": 200,
+        "originalSize": 456,
+        "convertedSize": 298
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/xml-to-json",
+      "headers": {
+        "Content-Type": ["application/xml"]
+      },
+      "body": {
+        "type": "XML",
+        "contains": "<document>"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["xml-to-json-mock"]
+      },
+      "body": {
+        "type": "JSON",
+        "content": "{\"document\":{\"type\":\"passport\",\"number\":\"P123456789\",\"expiryDate\":\"2030-12-31\",\"issuingCountry\":\"USA\",\"holderName\":\"John Doe\"}}",
+        "conversionTime": 120,
+        "originalSize": 234,
+        "convertedSize": 187
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/xml-to-json",
+      "headers": {
+        "Content-Type": ["application/xml"]
+      },
+      "body": {
+        "type": "XML",
+        "contains": "<invalid>"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 400,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["xml-to-json-mock"]
+      },
+      "body": {
+        "error": "INVALID_XML",
+        "message": "Invalid XML format provided",
+        "details": "XML parsing failed at line 1, column 10",
+        "timestamp": "2024-01-15T10:30:00Z"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/health"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-Service": ["xml-to-json-mock"]
+      },
+      "body": {
+        "status": "UP",
+        "service": "xml-to-json-service",
+        "version": "1.0.0",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "uptime": "72h 15m 30s"
+      }
+    }
+  }
+]
