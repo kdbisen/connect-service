@@ -146,3 +146,4 @@ class ConnectControllerTest {
                 .jsonPath("$.message").isEqualTo("Connect service is running");
     }
 }
+

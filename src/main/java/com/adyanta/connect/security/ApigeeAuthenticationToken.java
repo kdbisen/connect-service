@@ -31,3 +31,4 @@ public class ApigeeAuthenticationToken extends UsernamePasswordAuthenticationTok
         this.apiKey = apiKey;
     }
 }
+

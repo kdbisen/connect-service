@@ -58,3 +58,4 @@ public interface ProcessingAuditLogRepository extends ReactiveMongoRepository<Pr
     @Query("{'processingRequestId': ?0, 'status': 'FAILED'}")
     Flux<ProcessingAuditLog> findFailedStepsByProcessingRequestId(String processingRequestId);
 }
+

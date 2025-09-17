@@ -67,3 +67,4 @@ public class ConnectRequestDto {
     @Builder.Default
     private Long timeoutMs = 300000L; // 5 minutes default
 }
+

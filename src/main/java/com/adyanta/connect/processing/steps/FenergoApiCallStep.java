@@ -52,3 +52,4 @@ public class FenergoApiCallStep implements ProcessingStep {
                 .doOnError(error -> log.error("Fenergo API call failed for request: {}", request.getRequestId(), error));
     }
 }
+

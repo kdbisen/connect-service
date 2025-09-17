@@ -43,3 +43,4 @@ public class CompletionStep implements ProcessingStep {
                 .doOnSuccess(result -> log.info("Request processing completed: {}", request.getRequestId()));
     }
 }
+

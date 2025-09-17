@@ -69,3 +69,4 @@ public enum RequestType {
         throw new IllegalArgumentException("Unknown request type code: " + code);
     }
 }
+

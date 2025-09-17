@@ -38,7 +38,7 @@ info:
     url: https://opensource.org/licenses/MIT
 
 host: connect-service.adyanta.com
-basePath: /
+basePath: /v1
 schemes:
   - https
   - http
@@ -880,3 +880,4 @@ definitions:
 externalDocs:
   description: Connect Service Documentation
   url: https://docs.adyanta.com/connect-service
+

@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
  */
 @Slf4j
 @RestController
-@RequestMapping("/connect")
+@RequestMapping("/v1/connect")
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Connect Service", description = "APIs for processing XML/JSON requests with external API integration")

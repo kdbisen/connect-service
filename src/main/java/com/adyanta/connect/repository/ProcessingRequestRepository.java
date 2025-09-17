@@ -67,3 +67,4 @@ public interface ProcessingRequestRepository extends ReactiveMongoRepository<Pro
      */
     Mono<Long> countByRequestType(RequestType requestType);
 }
+

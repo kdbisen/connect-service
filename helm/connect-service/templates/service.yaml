@@ -21,3 +21,4 @@ spec:
       name: management
   selector:
     {{- include "connect-service.selectorLabels" . | nindent 4 }}
+

@@ -56,3 +56,4 @@ logging:
     org.springframework.integration: WARN
     org.springframework.security: WARN
     org.springframework.web.reactive: WARN
+

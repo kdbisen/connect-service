@@ -148,3 +148,4 @@ public class ProcessingRequest {
                (status == ProcessingStatus.FAILED || status == ProcessingStatus.TIMEOUT);
     }
 }
+

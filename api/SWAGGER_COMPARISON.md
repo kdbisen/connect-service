@@ -289,3 +289,4 @@ Both specifications are valid and widely supported. Choose based on your specifi
 - **Swagger 2.0**: Stable, widely adopted, legacy support
 
 The Connect Service provides both versions to ensure maximum compatibility with different tools and environments.
+

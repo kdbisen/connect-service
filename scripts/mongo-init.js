@@ -19,3 +19,4 @@ db.processing_audit_logs.createIndex({ "status": 1 });
 db.processing_audit_logs.createIndex({ "createdAt": 1 });
 
 print('MongoDB initialization completed');
+
