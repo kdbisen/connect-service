@@ -1,0 +1,882 @@
+swagger: '2.0'
+info:
+  title: Connect Service API
+  description: |
+    A robust Spring Boot reactive microservice for orchestrating data flow between multiple external services.
+    This service acts as a connector hub, processing XML/JSON payloads through configurable pipelines
+    and managing authentication with various external systems including Apigee Gateway and Fenergo.
+    
+    ## Key Features
+    - **Reactive Processing**: Built with Spring WebFlux and Project Reactor
+    - **Multi-Service Orchestration**: Connect and orchestrate multiple external services
+    - **Flexible Authentication**: Support for Apigee Gateway, OAuth2, and mTLS
+    - **Audit & Monitoring**: Complete request tracking with correlation IDs
+    - **SSL MongoDB**: Advanced MongoDB connectivity with SSL/TLS
+    - **Vault Integration**: Secure credential management with HashiCorp Vault
+    
+    ## Authentication
+    All requests must be authenticated via Apigee Gateway. The service validates incoming requests
+    and manages OAuth2 tokens for outbound calls to external services.
+    
+    ## Request Processing Flow
+    1. Receive XML/JSON payload with request type enum
+    2. Convert XML to JSON (if needed)
+    3. Call external service based on request type
+    4. Call Fenergo API with processed data
+    5. Store all data in MongoDB with audit trail
+    
+    ## Monitoring
+    - Health checks available at `/connect/health`
+    - Metrics exposed at `/actuator/prometheus`
+    - Swagger UI available at `/swagger-ui.html`
+  version: 1.0.0
+  contact:
+    name: Adyanta Connect Service Team
+    email: support@adyanta.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+host: connect-service.adyanta.com
+basePath: /
+schemes:
+  - https
+  - http
+
+consumes:
+  - application/json
+
+produces:
+  - application/json
+
+securityDefinitions:
+  ApigeeAuth:
+    type: oauth2
+    authorizationUrl: https://apigee.adyanta.com/oauth/authorize
+    tokenUrl: https://apigee.adyanta.com/oauth/token
+    flow: implicit
+    scopes:
+      connect:process: Access to process requests
+      connect:status: Access to check request status
+      connect:admin: Access to administrative operations
+
+paths:
+  /connect/process:
+    post:
+      tags:
+        - Connect
+      summary: Process a connect request
+      description: |
+        Submit a request for processing through the connect service pipeline.
+        This is a fire-and-forget API that accepts XML or JSON payloads and processes
+        them through configurable pipelines based on the request type.
+        
+        **Processing Flow:**
+        1. Validate request and authenticate via Apigee
+        2. Convert XML to JSON (if needed)
+        3. Call external service based on request type
+        4. Call Fenergo API with processed data
+        5. Store all data in MongoDB with audit trail
+        
+        **Request Types Supported:**
+        - `CUSTOMER_ONBOARDING`: Customer onboarding workflow
+        - `DOCUMENT_VERIFICATION`: Document verification process
+        - `RISK_ASSESSMENT`: Risk assessment workflow
+        - `COMPLIANCE_CHECK`: Compliance verification
+        - `GENERIC`: Generic processing workflow
+      operationId: processConnectRequest
+      security:
+        - ApigeeAuth:
+          - connect:process
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ConnectRequest'
+      responses:
+        202:
+          description: Request accepted for processing
+          headers:
+            X-Correlation-Id:
+              type: string
+              description: Unique correlation ID for tracking this request
+              example: "550e8400-e29b-41d4-a716-446655440000"
+          schema:
+            $ref: '#/definitions/ConnectResponse'
+          examples:
+            application/json:
+              requestId: "req_123456789"
+              status: "ACCEPTED"
+              message: "Request accepted for processing"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              timestamp: "2024-01-15T10:30:00Z"
+        400:
+          description: Bad Request - Invalid input data
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+          examples:
+            application/json:
+              error: "VALIDATION_ERROR"
+              message: "Invalid request type: UNSUPPORTED_TYPE"
+              details: "Request type must be one of: CUSTOMER_ONBOARDING, DOCUMENT_VERIFICATION, RISK_ASSESSMENT, COMPLIANCE_CHECK, GENERIC"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              timestamp: "2024-01-15T10:30:00Z"
+        401:
+          description: Unauthorized - Authentication failed
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+          examples:
+            application/json:
+              error: "AUTHENTICATION_FAILED"
+              message: "Invalid or expired Apigee token"
+              details: "Please ensure you have a valid Apigee token in the Authorization header"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              timestamp: "2024-01-15T10:30:00Z"
+        429:
+          description: Too Many Requests - Rate limit exceeded
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+          examples:
+            application/json:
+              error: "RATE_LIMIT_EXCEEDED"
+              message: "Too many requests. Please try again later."
+              details: "Rate limit: 100 requests per minute"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              timestamp: "2024-01-15T10:30:00Z"
+        500:
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+          examples:
+            application/json:
+              error: "INTERNAL_ERROR"
+              message: "An unexpected error occurred while processing the request"
+              details: "Please contact support if this issue persists"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              timestamp: "2024-01-15T10:30:00Z"
+
+  /connect/status/{requestId}:
+    get:
+      tags:
+        - Connect
+      summary: Get request processing status
+      description: |
+        Retrieve the current status and details of a processing request.
+        This endpoint provides real-time information about the request processing
+        including current step, completion status, and any error details.
+      operationId: getRequestStatus
+      security:
+        - ApigeeAuth:
+          - connect:status
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          type: string
+          description: Unique identifier of the processing request
+          example: "req_123456789"
+      responses:
+        200:
+          description: Request status retrieved successfully
+          schema:
+            $ref: '#/definitions/RequestStatusResponse'
+          examples:
+            application/json:
+              requestId: "req_123456789"
+              status: "PROCESSING"
+              currentStep: "EXTERNAL_API_CALL"
+              progress: 60
+              message: "Processing external API call"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              createdAt: "2024-01-15T10:30:00Z"
+              updatedAt: "2024-01-15T10:32:00Z"
+              steps:
+                - step: "XML_TO_JSON_CONVERSION"
+                  status: "COMPLETED"
+                  completedAt: "2024-01-15T10:30:30Z"
+                  duration: 500
+                - step: "EXTERNAL_API_CALL"
+                  status: "IN_PROGRESS"
+                  startedAt: "2024-01-15T10:30:30Z"
+                - step: "FENERGO_API_CALL"
+                  status: "PENDING"
+                - step: "COMPLETION"
+                  status: "PENDING"
+        404:
+          description: Request not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+          examples:
+            application/json:
+              error: "REQUEST_NOT_FOUND"
+              message: "Request with ID 'req_123456789' not found"
+              details: "Please verify the request ID and try again"
+              correlationId: "550e8400-e29b-41d4-a716-446655440000"
+              timestamp: "2024-01-15T10:30:00Z"
+        500:
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+  /connect/health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: |
+        Check the health status of the connect service and its dependencies.
+        This endpoint provides detailed information about the service health including
+        database connectivity, external service availability, and system metrics.
+      operationId: healthCheck
+      responses:
+        200:
+          description: Service is healthy
+          schema:
+            $ref: '#/definitions/HealthResponse'
+          examples:
+            application/json:
+              status: "UP"
+              timestamp: "2024-01-15T10:30:00Z"
+              version: "1.0.0"
+              components:
+                database:
+                  status: "UP"
+                  details:
+                    connectionPool: "ACTIVE"
+                    activeConnections: 5
+                    maxConnections: 20
+                externalServices:
+                  status: "UP"
+                  details:
+                    xmlToJsonService: "UP"
+                    fenergoService: "UP"
+                    apigeeGateway: "UP"
+                vault:
+                  status: "UP"
+                  details:
+                    connection: "ACTIVE"
+                    secretsAccessible: true
+              metrics:
+                requestsPerMinute: 45
+                averageResponseTime: 250
+                errorRate: 0.02
+                activeConnections: 5
+        503:
+          description: Service is unhealthy
+          schema:
+            $ref: '#/definitions/HealthResponse'
+          examples:
+            application/json:
+              status: "DOWN"
+              timestamp: "2024-01-15T10:30:00Z"
+              version: "1.0.0"
+              components:
+                database:
+                  status: "DOWN"
+                  details:
+                    error: "Connection refused"
+                externalServices:
+                  status: "DOWN"
+                  details:
+                    xmlToJsonService: "DOWN"
+                    fenergoService: "DOWN"
+                    apigeeGateway: "DOWN"
+                vault:
+                  status: "DOWN"
+                  details:
+                    error: "Authentication failed"
+              metrics:
+                requestsPerMinute: 0
+                averageResponseTime: 0
+                errorRate: 1.0
+                activeConnections: 0
+
+  /connect/runs:
+    get:
+      tags:
+        - Admin
+      summary: List processing runs
+      description: |
+        Retrieve a paginated list of processing runs with optional filtering.
+        This endpoint is useful for monitoring and debugging request processing.
+      operationId: listProcessingRuns
+      security:
+        - ApigeeAuth:
+          - connect:admin
+      parameters:
+        - name: status
+          in: query
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED]
+          description: Filter by processing status
+        - name: requestType
+          in: query
+          type: string
+          enum: [CUSTOMER_ONBOARDING, DOCUMENT_VERIFICATION, RISK_ASSESSMENT, COMPLIANCE_CHECK, GENERIC]
+          description: Filter by request type
+        - name: from
+          in: query
+          type: string
+          format: date-time
+          description: Start date for filtering (ISO 8601 format)
+          example: "2024-01-15T00:00:00Z"
+        - name: to
+          in: query
+          type: string
+          format: date-time
+          description: End date for filtering (ISO 8601 format)
+          example: "2024-01-15T23:59:59Z"
+        - name: page
+          in: query
+          type: integer
+          minimum: 0
+          default: 0
+          description: Page number (0-based)
+        - name: size
+          in: query
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Page size
+      responses:
+        200:
+          description: List of processing runs retrieved successfully
+          schema:
+            $ref: '#/definitions/ProcessingRunsResponse'
+
+  /connect/runs/{requestId}/timeline:
+    get:
+      tags:
+        - Admin
+      summary: Get processing timeline
+      description: |
+        Retrieve detailed timeline information for a specific processing run.
+        This includes step-by-step execution details with timestamps and durations.
+      operationId: getProcessingTimeline
+      security:
+        - ApigeeAuth:
+          - connect:admin
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          type: string
+          description: Unique identifier of the processing request
+          example: "req_123456789"
+      responses:
+        200:
+          description: Timeline retrieved successfully
+          schema:
+            $ref: '#/definitions/ProcessingTimelineResponse'
+        404:
+          description: Request not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+  /connect/runs/{requestId}/retry:
+    post:
+      tags:
+        - Admin
+      summary: Retry a failed request
+      description: |
+        Retry a failed processing request. This will restart the processing
+        from the beginning with the original payload.
+      operationId: retryProcessingRequest
+      security:
+        - ApigeeAuth:
+          - connect:admin
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          type: string
+          description: Unique identifier of the processing request
+          example: "req_123456789"
+        - name: body
+          in: body
+          required: false
+          schema:
+            type: object
+            properties:
+              reason:
+                type: string
+                description: Reason for retry
+                example: "Manual retry after fixing external service issue"
+            example:
+              reason: "Manual retry after fixing external service issue"
+      responses:
+        202:
+          description: Retry request accepted
+          schema:
+            $ref: '#/definitions/ConnectResponse'
+        404:
+          description: Request not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        409:
+          description: Request cannot be retried (not in failed state)
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+definitions:
+  ConnectRequest:
+    type: object
+    required:
+      - requestType
+      - payload
+    properties:
+      requestType:
+        $ref: '#/definitions/RequestType'
+      payload:
+        description: XML payload as string or JSON payload as object
+        example: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <customer>
+            <firstName>John</firstName>
+            <lastName>Doe</lastName>
+          </customer>
+      metadata:
+        $ref: '#/definitions/RequestMetadata'
+
+  ConnectResponse:
+    type: object
+    required:
+      - requestId
+      - status
+      - message
+      - correlationId
+      - timestamp
+    properties:
+      requestId:
+        type: string
+        description: Unique identifier for the processing request
+        example: "req_123456789"
+      status:
+        $ref: '#/definitions/ProcessingStatus'
+      message:
+        type: string
+        description: Status message
+        example: "Request accepted for processing"
+      correlationId:
+        type: string
+        description: Correlation ID for tracking
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      timestamp:
+        type: string
+        format: date-time
+        description: Response timestamp
+        example: "2024-01-15T10:30:00Z"
+
+  RequestStatusResponse:
+    type: object
+    required:
+      - requestId
+      - status
+      - correlationId
+      - createdAt
+      - updatedAt
+    properties:
+      requestId:
+        type: string
+        description: Unique identifier for the processing request
+        example: "req_123456789"
+      status:
+        $ref: '#/definitions/ProcessingStatus'
+      currentStep:
+        type: string
+        description: Current processing step
+        example: "EXTERNAL_API_CALL"
+      progress:
+        type: integer
+        minimum: 0
+        maximum: 100
+        description: Processing progress percentage
+        example: 60
+      message:
+        type: string
+        description: Current status message
+        example: "Processing external API call"
+      correlationId:
+        type: string
+        description: Correlation ID for tracking
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      createdAt:
+        type: string
+        format: date-time
+        description: Request creation timestamp
+        example: "2024-01-15T10:30:00Z"
+      updatedAt:
+        type: string
+        format: date-time
+        description: Last update timestamp
+        example: "2024-01-15T10:32:00Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Completion timestamp (if completed)
+        example: "2024-01-15T10:35:00Z"
+      totalDuration:
+        type: integer
+        description: Total processing duration in milliseconds
+        example: 300000
+      error:
+        $ref: '#/definitions/ErrorDetails'
+      steps:
+        type: array
+        description: Processing steps with their status
+        items:
+          $ref: '#/definitions/ProcessingStep'
+
+  ProcessingStep:
+    type: object
+    required:
+      - step
+      - status
+    properties:
+      step:
+        type: string
+        description: Step name
+        example: "XML_TO_JSON_CONVERSION"
+      status:
+        type: string
+        enum: [PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED]
+        description: Step status
+        example: "COMPLETED"
+      startedAt:
+        type: string
+        format: date-time
+        description: Step start timestamp
+        example: "2024-01-15T10:30:00Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Step completion timestamp
+        example: "2024-01-15T10:30:30Z"
+      failedAt:
+        type: string
+        format: date-time
+        description: Step failure timestamp
+        example: "2024-01-15T10:32:00Z"
+      duration:
+        type: integer
+        description: Step duration in milliseconds
+        example: 500
+      error:
+        type: string
+        description: Error message if step failed
+        example: "Connection timeout"
+
+  HealthResponse:
+    type: object
+    required:
+      - status
+      - timestamp
+      - version
+    properties:
+      status:
+        type: string
+        enum: [UP, DOWN, DEGRADED]
+        description: Overall service health status
+        example: "UP"
+      timestamp:
+        type: string
+        format: date-time
+        description: Health check timestamp
+        example: "2024-01-15T10:30:00Z"
+      version:
+        type: string
+        description: Service version
+        example: "1.0.0"
+      components:
+        type: object
+        description: Individual component health status
+        properties:
+          database:
+            $ref: '#/definitions/ComponentHealth'
+          externalServices:
+            $ref: '#/definitions/ComponentHealth'
+          vault:
+            $ref: '#/definitions/ComponentHealth'
+      metrics:
+        type: object
+        description: Service metrics
+        properties:
+          requestsPerMinute:
+            type: number
+            description: Requests per minute
+            example: 45
+          averageResponseTime:
+            type: number
+            description: Average response time in milliseconds
+            example: 250
+          errorRate:
+            type: number
+            description: Error rate percentage
+            example: 0.02
+          activeConnections:
+            type: integer
+            description: Number of active connections
+            example: 5
+
+  ComponentHealth:
+    type: object
+    required:
+      - status
+    properties:
+      status:
+        type: string
+        enum: [UP, DOWN, DEGRADED]
+        description: Component health status
+        example: "UP"
+      details:
+        type: object
+        description: Additional component details
+        additionalProperties: true
+        example:
+          connectionPool: "ACTIVE"
+          activeConnections: 5
+          maxConnections: 20
+
+  ProcessingRunsResponse:
+    type: object
+    required:
+      - content
+      - totalElements
+      - totalPages
+      - size
+      - number
+    properties:
+      content:
+        type: array
+        description: List of processing runs
+        items:
+          $ref: '#/definitions/ProcessingRunSummary'
+      totalElements:
+        type: integer
+        description: Total number of elements
+        example: 150
+      totalPages:
+        type: integer
+        description: Total number of pages
+        example: 8
+      size:
+        type: integer
+        description: Page size
+        example: 20
+      number:
+        type: integer
+        description: Current page number (0-based)
+        example: 0
+      first:
+        type: boolean
+        description: Whether this is the first page
+        example: true
+      last:
+        type: boolean
+        description: Whether this is the last page
+        example: false
+
+  ProcessingRunSummary:
+    type: object
+    required:
+      - requestId
+      - status
+      - requestType
+      - createdAt
+    properties:
+      requestId:
+        type: string
+        description: Unique identifier for the processing request
+        example: "req_123456789"
+      status:
+        $ref: '#/definitions/ProcessingStatus'
+      requestType:
+        $ref: '#/definitions/RequestType'
+      createdAt:
+        type: string
+        format: date-time
+        description: Request creation timestamp
+        example: "2024-01-15T10:30:00Z"
+      updatedAt:
+        type: string
+        format: date-time
+        description: Last update timestamp
+        example: "2024-01-15T10:32:00Z"
+      completedAt:
+        type: string
+        format: date-time
+        description: Completion timestamp (if completed)
+        example: "2024-01-15T10:35:00Z"
+      totalDuration:
+        type: integer
+        description: Total processing duration in milliseconds
+        example: 300000
+      correlationId:
+        type: string
+        description: Correlation ID for tracking
+        example: "550e8400-e29b-41d4-a716-446655440000"
+
+  ProcessingTimelineResponse:
+    type: object
+    required:
+      - requestId
+      - timeline
+    properties:
+      requestId:
+        type: string
+        description: Unique identifier for the processing request
+        example: "req_123456789"
+      timeline:
+        type: array
+        description: Detailed timeline of processing steps
+        items:
+          $ref: '#/definitions/TimelineEvent'
+
+  TimelineEvent:
+    type: object
+    required:
+      - timestamp
+      - event
+      - step
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Event timestamp
+        example: "2024-01-15T10:30:00Z"
+      event:
+        type: string
+        enum: [STARTED, COMPLETED, FAILED, CANCELLED]
+        description: Event type
+        example: "STARTED"
+      step:
+        type: string
+        description: Processing step
+        example: "XML_TO_JSON_CONVERSION"
+      message:
+        type: string
+        description: Event message
+        example: "XML to JSON conversion started"
+      duration:
+        type: integer
+        description: Step duration in milliseconds
+        example: 500
+      error:
+        type: string
+        description: Error message if event represents a failure
+        example: "Connection timeout"
+
+  RequestType:
+    type: string
+    enum:
+      - CUSTOMER_ONBOARDING
+      - DOCUMENT_VERIFICATION
+      - RISK_ASSESSMENT
+      - COMPLIANCE_CHECK
+      - GENERIC
+    description: |
+      Type of request being processed:
+      - **CUSTOMER_ONBOARDING**: Customer onboarding workflow
+      - **DOCUMENT_VERIFICATION**: Document verification process
+      - **RISK_ASSESSMENT**: Risk assessment workflow
+      - **COMPLIANCE_CHECK**: Compliance verification
+      - **GENERIC**: Generic processing workflow
+    example: "CUSTOMER_ONBOARDING"
+
+  ProcessingStatus:
+    type: string
+    enum:
+      - PENDING
+      - PROCESSING
+      - COMPLETED
+      - FAILED
+      - CANCELLED
+    description: |
+      Current processing status:
+      - **PENDING**: Request is queued for processing
+      - **PROCESSING**: Request is currently being processed
+      - **COMPLETED**: Request has been completed successfully
+      - **FAILED**: Request processing failed
+      - **CANCELLED**: Request processing was cancelled
+    example: "PROCESSING"
+
+  RequestMetadata:
+    type: object
+    description: Additional metadata for the request
+    properties:
+      source:
+        type: string
+        description: Source system identifier
+        example: "mobile_app"
+      version:
+        type: string
+        description: API version
+        example: "1.0"
+      clientId:
+        type: string
+        description: Client identifier
+        example: "mobile_client_001"
+      correlationId:
+        type: string
+        description: Optional correlation ID for tracking
+        example: "550e8400-e29b-41d4-a716-446655440000"
+
+  ErrorResponse:
+    type: object
+    required:
+      - error
+      - message
+      - correlationId
+      - timestamp
+    properties:
+      error:
+        type: string
+        description: Error code
+        example: "VALIDATION_ERROR"
+      message:
+        type: string
+        description: Error message
+        example: "Invalid request type: UNSUPPORTED_TYPE"
+      details:
+        type: string
+        description: Additional error details
+        example: "Request type must be one of: CUSTOMER_ONBOARDING, DOCUMENT_VERIFICATION, RISK_ASSESSMENT, COMPLIANCE_CHECK, GENERIC"
+      correlationId:
+        type: string
+        description: Correlation ID for tracking
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      timestamp:
+        type: string
+        format: date-time
+        description: Error timestamp
+        example: "2024-01-15T10:30:00Z"
+
+  ErrorDetails:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: string
+        description: Error code
+        example: "EXTERNAL_API_ERROR"
+      message:
+        type: string
+        description: Error message
+        example: "Connection timeout to external service"
+      details:
+        type: string
+        description: Additional error details
+        example: "Service unavailable: timeout after 30 seconds"
+      timestamp:
+        type: string
+        format: date-time
+        description: Error timestamp
+        example: "2024-01-15T10:32:00Z"
+
+externalDocs:
+  description: Connect Service Documentation
+  url: https://docs.adyanta.com/connect-service
