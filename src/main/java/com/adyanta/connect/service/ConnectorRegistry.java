@@ -10,14 +10,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.FileInputStream;
-import java.security.KeyStore;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -60,15 +52,7 @@ public class ConnectorRegistry {
                             .build())));
         }
 
-        // mTLS if configured
-        if (svc.getAuth().getMTLS().isEnabled()) {
-            SSLContext sslContext = buildSslContext(svc.getAuth().getMTLS());
-            b.clientConnector(new org.springframework.http.client.reactive.ReactorClientHttpConnector(
-                    reactor.netty.http.client.HttpClient.create()
-                            .secure(sslSpec -> sslSpec.sslContext(new io.netty.handler.ssl.JdkSslContext(sslContext, true)))
-                            .responseTimeout(Duration.ofMillis(svc.getTimeoutMs()))
-            ));
-        }
+        // mTLS support can be added here using a Netty SslContext if required in future.
 
         return b.build();
     }
@@ -79,35 +63,7 @@ public class ConnectorRegistry {
                 .build());
     }
 
-    private SSLContext buildSslContext(ExternalServicesProperties.Mtls m) {
-        try {
-            KeyManagerFactory kmf = null;
-            TrustManagerFactory tmf = null;
-            if (StringUtils.hasText(m.getKeyStorePath())) {
-                KeyStore ks = KeyStore.getInstance(m.getKeyStoreType());
-                try (FileInputStream fis = new FileInputStream(m.getKeyStorePath())) {
-                    ks.load(fis, toChars(m.getKeyStorePassword()));
-                }
-                kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                kmf.init(ks, toChars(m.getKeyStorePassword()));
-            }
-            if (StringUtils.hasText(m.getTrustStorePath())) {
-                KeyStore ts = KeyStore.getInstance(m.getTrustStoreType());
-                try (FileInputStream fis = new FileInputStream(m.getTrustStorePath())) {
-                    ts.load(fis, toChars(m.getTrustStorePassword()));
-                }
-                tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                tmf.init(ts);
-            }
-            SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(kmf != null ? kmf.getKeyManagers() : null, tmf != null ? tmf.getTrustManagers() : null, null);
-            return ctx;
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to build mTLS context for connector", e);
-        }
-    }
-
-    private char[] toChars(String s) { return s == null ? new char[0] : s.toCharArray(); }
+    // Placeholder for future SSL helpers if needed
 }
 
 

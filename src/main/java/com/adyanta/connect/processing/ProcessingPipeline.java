@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,7 +34,7 @@ public class ProcessingPipeline {
         // Sort steps by order
         List<ProcessingStep> sortedSteps = processingSteps.stream()
                 .filter(step -> step.shouldExecute(request))
-                .sorted((s1, s2) -> Integer.compare(s1.getOrder(), s2.getOrder()))
+                .sorted(Comparator.comparingInt(ProcessingStep::getOrder))
                 .collect(Collectors.toList());
         
         return executeSteps(request, sortedSteps, 0)

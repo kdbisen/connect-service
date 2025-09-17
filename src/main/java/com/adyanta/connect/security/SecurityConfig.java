@@ -10,7 +10,7 @@ import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
-import org.springframework.security.web.server.authentication.ServerAuthenticationEntryPoint;
+import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.authorization.ServerAccessDeniedHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
@@ -18,6 +18,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.Collections;
+import reactor.core.publisher.Mono;
 
 /**
  * Security configuration for the connect service
@@ -62,7 +63,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*") );
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         

@@ -123,7 +123,7 @@ public class AdvancedMongoConfig extends AbstractReactiveMongoConfiguration {
         }
         // Inject password if URI has user without password: mongodb://user@host/db -> mongodb://user:pwd@host/db
         // If password already present, return as is.
-        if (baseUri.matches("mongodb(\+srv)?:\\/\\/[^:]+:[^@]+@.*")) {
+        if (baseUri.matches("mongodb(\\+srv)?:\\/\\/[^:]+:[^@]+@.*")) {
             return baseUri; // already has password
         }
         return baseUri.replaceFirst("(mongodb(\\+srv)?:\\/\\/)([^:@/]+)(@)", "$1$3:" + java.util.regex.Matcher.quoteReplacement(password) + "$4");
