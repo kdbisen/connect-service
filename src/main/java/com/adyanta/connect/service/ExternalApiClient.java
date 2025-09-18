@@ -1,82 +1,41 @@
 package com.adyanta.connect.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
-
-import java.time.Duration;
 
 /**
- * Client for calling external APIs
+ * Service for external API client configuration
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class ExternalApiClient {
     
-    private final WebClient.Builder webClientBuilder;
-    private final OAuth2TokenService oAuth2TokenService;
+    @Value("${external.services.misc-service.base-url:http://localhost:8081}")
+    private String miscServiceBaseUrl;
     
-    @Value("${external.apis.xml-to-json.base-url}")
-    private String xmlToJsonApiUrl;
+    @Value("${external.services.misc-service.timeout:30000}")
+    private int miscServiceTimeout;
     
-    @Value("${external.apis.xml-to-json.timeout}")
-    private int xmlToJsonTimeout;
-    
-    @Value("${external.apis.fenergo.base-url}")
-    private String fenergoApiUrl;
-    
-    @Value("${external.apis.fenergo.timeout}")
-    private int fenergoTimeout;
+    @Value("${external.services.misc-service.retry-attempts:3}")
+    private int miscServiceRetryAttempts;
     
     /**
-     * Convert XML to JSON using external API
+     * Get misc service base URL
      */
-    public Mono<String> convertXmlToJson(String xmlPayload, String clientId) {
-        log.debug("Converting XML to JSON for client: {}", clientId);
-        
-        return oAuth2TokenService.getApigeeToken()
-                .flatMap(token -> webClientBuilder
-                        .build()
-                        .post()
-                        .uri(xmlToJsonApiUrl + "/convert")
-                        .header("Authorization", "Bearer " + token)
-                        .header("Content-Type", "application/xml")
-                        .header("Accept", "application/json")
-                        .bodyValue(xmlPayload)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(Duration.ofMillis(xmlToJsonTimeout))
-                        .doOnSuccess(response -> log.debug("XML to JSON conversion successful"))
-                        .doOnError(error -> log.error("XML to JSON conversion failed", error))
-                );
+    public String getMiscServiceUrl() {
+        return miscServiceBaseUrl;
     }
     
     /**
-     * Call Fenergo API with JSON payload
+     * Get misc service timeout
      */
-    public Mono<String> callFenergoApi(String jsonPayload, String clientId) {
-        log.debug("Calling Fenergo API for client: {}", clientId);
-        
-        return oAuth2TokenService.getFenergoToken()
-                .flatMap(token -> webClientBuilder
-                        .build()
-                        .post()
-                        .uri(fenergoApiUrl + "/process")
-                        .header("Authorization", "Bearer " + token)
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "application/json")
-                        .bodyValue(jsonPayload)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(Duration.ofMillis(fenergoTimeout))
-                        .doOnSuccess(response -> log.debug("Fenergo API call successful"))
-                        .doOnError(error -> log.error("Fenergo API call failed", error))
-                );
+    public int getMiscServiceTimeout() {
+        return miscServiceTimeout;
+    }
+    
+    /**
+     * Get misc service retry attempts
+     */
+    public int getMiscServiceRetryAttempts() {
+        return miscServiceRetryAttempts;
     }
 }
-

@@ -1,10 +1,13 @@
 server:
-  port: 0
+  port: 0  # Random port for testing
 
 spring:
+  application:
+    name: connect-service-test
+  
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/connect-service-test}
+      uri: mongodb://localhost:27017/connect-service-test
       auto-index-creation: true
   
   security:
@@ -12,8 +15,8 @@ spring:
       client:
         registration:
           apigee:
-            client-id: test-apigee-client
-            client-secret: test-apigee-secret
+            client-id: test-client-id
+            client-secret: test-secret
             authorization-grant-type: client_credentials
             scope: read,write
           fenergo:
@@ -23,37 +26,33 @@ spring:
             scope: api
         provider:
           apigee:
-            token-uri: http://localhost:8080/mock/apigee/token
+            token-uri: https://test.apigee.com/oauth/token
           fenergo:
-            token-uri: http://localhost:8080/mock/fenergo/token
+            token-uri: https://test.fenergo.com/oauth/token
 
 # External API Configuration for testing
 external:
-  apis:
-    xml-to-json:
-      base-url: http://localhost:8080/mock/xml-to-json
+  services:
+    misc-service:
+      base-url: http://localhost:8081
       timeout: 5000
       retry-attempts: 1
     fenergo:
-      base-url: http://localhost:8080/mock/fenergo
-      timeout: 5000
+      base-url: https://test.fenergo.com
+      timeout: 10000
       retry-attempts: 1
+      api-path: /api/v1/kyc
 
-# Processing Configuration for testing
+# Processing Configuration
 processing:
   async:
     core-pool-size: 2
     max-pool-size: 5
     queue-capacity: 100
-  retry:
-    max-attempts: 1
-    backoff-delay: 100
-    max-delay: 1000
 
 logging:
   level:
     com.adyanta.connect: DEBUG
-    org.springframework.integration: WARN
-    org.springframework.security: WARN
-    org.springframework.web.reactive: WARN
-
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -80,6 +80,16 @@ external:
       base-url: ${FENERGO_API_URL:https://api.fenergo.com/v1}
       timeout: 60000
       retry-attempts: 3
+  services:
+    misc-service:
+      base-url: ${MISC_SERVICE_URL:http://localhost:8081}
+      timeout: 30000
+      retry-attempts: 3
+    fenergo:
+      base-url: ${FENERGO_SERVICE_URL:https://api.fenergo.com}
+      timeout: 60000
+      retry-attempts: 3
+      api-path: ${FENERGO_API_PATH:/api/v1/kyc}
 
 # Processing Configuration
 processing:

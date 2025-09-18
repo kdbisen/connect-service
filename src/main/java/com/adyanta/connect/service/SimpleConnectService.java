@@ -4,7 +4,6 @@ import com.adyanta.connect.domain.document.ProcessingRequest;
 import com.adyanta.connect.domain.dto.ConnectRequestDto;
 import com.adyanta.connect.domain.dto.ConnectResponseDto;
 import com.adyanta.connect.domain.enums.ProcessingStatus;
-import com.adyanta.connect.processing.annotation.AnnotationBasedProcessorRegistry;
 import com.adyanta.connect.repository.ProcessingRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,23 +15,22 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Connect Service using annotation-based request processing
- * This replaces the factory pattern with annotation-based routing
+ * Simple Connect Service for ADD_KYC implementation
+ * Uses synchronous Spring Boot with @Async for background processing
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AnnotationBasedConnectService {
+public class SimpleConnectService {
     
-    private final AnnotationBasedProcessorRegistry processorRegistry;
     private final ProcessingRequestRepository requestRepository;
-    private final AuditService auditService;
+    private final KycProcessor kycProcessor;
     
     /**
-     * Process a connect request asynchronously using annotation-based routing
+     * Process a connect request asynchronously (fire-and-forget)
      */
     public CompletableFuture<ConnectResponseDto> processRequestAsync(ConnectRequestDto requestDto) {
-        log.info("Processing connect request with annotation-based routing: {}", requestDto.getRequestId());
+        log.info("Processing connect request: {}", requestDto.getRequestId());
         
         // Generate request ID if not provided
         String requestId = requestDto.getRequestId() != null ? 
@@ -57,19 +55,19 @@ public class AnnotationBasedConnectService {
             // Save initial request
             ProcessingRequest savedRequest = requestRepository.save(processingRequest);
             
-            // Start async processing using annotation-based routing
+            // Start async processing
             processAsync(savedRequest);
             
             // Return immediate response
             ConnectResponseDto response = ConnectResponseDto.builder()
                     .requestId(requestId)
                     .status("ACCEPTED")
-                    .message("Request accepted for processing (annotation-based)")
+                    .message("Request accepted for processing")
                     .timestamp(LocalDateTime.now())
                     .processingId(savedRequest.getId())
                     .build();
             
-            log.info("Request accepted for annotation-based processing: {}", requestId);
+            log.info("Request accepted for processing: {}", requestId);
             return CompletableFuture.completedFuture(response);
             
         } catch (Exception error) {
@@ -79,28 +77,34 @@ public class AnnotationBasedConnectService {
     }
     
     /**
-     * Process request asynchronously using annotation-based routing
+     * Process request asynchronously
      */
     @Async("processingExecutor")
     public void processAsync(ProcessingRequest request) {
         try {
-            log.info("Starting annotation-based async processing for request: {}", request.getRequestId());
+            log.info("Starting async processing for request: {}", request.getRequestId());
             
             // Update status to processing
             request.setStatus(ProcessingStatus.PROCESSING);
             request.setUpdatedAt(LocalDateTime.now());
             requestRepository.save(request);
             
-            // Process the request using annotation-based routing
-            ProcessingRequest result = processorRegistry.processRequest(request);
+            // Process based on request type
+            ProcessingRequest result;
+            if (request.getRequestType().name().equals("ADD_KYC")) {
+                result = kycProcessor.processAddKyc(request);
+            } else {
+                // Generic processing for other types
+                result = processGeneric(request);
+            }
             
             // Save the result
             requestRepository.save(result);
             
-            log.info("Annotation-based async processing completed for request: {}", request.getRequestId());
+            log.info("Async processing completed for request: {}", request.getRequestId());
             
         } catch (Exception error) {
-            log.error("Annotation-based async processing failed for request: {}", request.getRequestId(), error);
+            log.error("Async processing failed for request: {}", request.getRequestId(), error);
             
             // Update request with error
             request.setStatus(ProcessingStatus.FAILED);
@@ -110,6 +114,20 @@ public class AnnotationBasedConnectService {
             request.setUpdatedAt(LocalDateTime.now());
             requestRepository.save(request);
         }
+    }
+    
+    /**
+     * Generic processing for non-KYC requests
+     */
+    private ProcessingRequest processGeneric(ProcessingRequest request) {
+        log.info("Processing generic request: {}", request.getRequestId());
+        
+        // Simple generic processing - just mark as completed
+        return request.toBuilder()
+                .status(ProcessingStatus.COMPLETED)
+                .processingEndTime(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
     }
     
     /**

@@ -1,7 +1,11 @@
 server:
   port: 8080
   servlet:
-    context-path: /api/v1
+    context-path: /api
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
 
 spring:
   application:
@@ -76,6 +80,16 @@ external:
       base-url: ${FENERGO_API_URL:https://api.fenergo.com/v1}
       timeout: 60000
       retry-attempts: 3
+  services:
+    misc-service:
+      base-url: ${MISC_SERVICE_URL:http://localhost:8081}
+      timeout: 30000
+      retry-attempts: 3
+    fenergo:
+      base-url: ${FENERGO_SERVICE_URL:https://api.fenergo.com}
+      timeout: 60000
+      retry-attempts: 3
+      api-path: ${FENERGO_API_PATH:/api/v1/kyc}
 
 # Processing Configuration
 processing:
@@ -87,3 +101,52 @@ processing:
     max-attempts: 3
     backoff-delay: 1000
     max-delay: 10000
+
+# API Versioning Configuration
+api:
+  versioning:
+    current-version: "2.0"
+    default-version: "1.0"
+    supported-versions: ["1.0", "2.0"]
+    deprecated-versions: []
+    features:
+      v1:
+        basic-processing: true
+        xml-to-json-conversion: true
+        external-api-integration: true
+        fenergo-integration: true
+        mongodb-storage: true
+        audit-logging: true
+        health-checks: true
+        swagger-documentation: true
+        correlation-id: true
+        vault-integration: true
+        ssl-mongodb: true
+        reactive-processing: true
+      v2:
+        basic-processing: true
+        xml-to-json-conversion: true
+        external-api-integration: true
+        fenergo-integration: true
+        mongodb-storage: true
+        audit-logging: true
+        health-checks: true
+        swagger-documentation: true
+        correlation-id: true
+        vault-integration: true
+        ssl-mongodb: true
+        reactive-processing: true
+        enhanced-validation: true
+        batch-processing: true
+        advanced-monitoring: true
+        real-time-metrics: true
+        improved-error-handling: true
+        multi-connector-support: true
+        route-executor: true
+        visual-ui-console: false
+    deprecation-policy:
+      deprecation-notice-months: 12
+      removal-notice-months: 24
+      migration-guide-url: "https://docs.adyanta.com/connect-service/migration/{from}-to-{to}"
+      support-contact: "support@adyanta.com"
+

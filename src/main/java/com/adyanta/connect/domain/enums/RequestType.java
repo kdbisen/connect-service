@@ -52,6 +52,11 @@ public enum RequestType {
     HIGH_VALUE_PAYMENT("high_value_payment", "High Value Payment Processing"),
     
     /**
+     * Add KYC request
+     */
+    ADD_KYC("add_kyc", "Add KYC Processing"),
+    
+    /**
      * Generic data processing request
      */
     GENERIC_PROCESSING("generic_processing", "Generic Data Processing");
