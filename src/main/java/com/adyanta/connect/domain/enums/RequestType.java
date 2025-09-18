@@ -37,6 +37,21 @@ public enum RequestType {
     TRANSACTION_MONITORING("transaction_monitoring", "Transaction Monitoring"),
     
     /**
+     * Payment processing request
+     */
+    PAYMENT_PROCESSING("payment_processing", "Payment Processing"),
+    
+    /**
+     * Refund processing request
+     */
+    REFUND_PROCESSING("refund_processing", "Refund Processing"),
+    
+    /**
+     * High-value payment request
+     */
+    HIGH_VALUE_PAYMENT("high_value_payment", "High Value Payment Processing"),
+    
+    /**
      * Generic data processing request
      */
     GENERIC_PROCESSING("generic_processing", "Generic Data Processing");
