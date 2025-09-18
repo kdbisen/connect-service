@@ -48,15 +48,50 @@ I have successfully implemented the ADD_KYC request processing functionality as 
 - **@Async Processing**: Background processing with `@Async("processingExecutor")`
 - **Fire-and-Forget**: Immediate 202 response, background processing
 - **MongoDB Storage**: All data persisted with tracking
+- **Annotation-Based Routing**: Uses `@ProcessRequestType` annotation for automatic request type handling
+
+### **Annotation-Based Processing System**
+
+The ADD_KYC implementation uses the annotation-based processing system:
+
+```java
+@Component
+@RequestProcessor("KycProcessor")
+public class KycProcessor {
+    
+    @ProcessRequestType(
+        value = {RequestType.ADD_KYC},
+        priority = 25,
+        description = "Handles ADD_KYC requests with misc service conversion and Fenergo API calls"
+    )
+    public ProcessingRequest processAddKyc(ProcessingRequest request) {
+        // 4-step processing implementation
+    }
+}
+```
+
+**How it works:**
+1. **`@RequestProcessor`** - Marks the class as a processor component
+2. **`@ProcessRequestType`** - Marks the method to handle specific request types
+3. **`AnnotationBasedProcessorRegistry`** - Automatically discovers and manages these processors
+4. **Automatic Routing** - When a request comes in, the registry finds the right processor method
+5. **Reflection Invocation** - The appropriate method is called using reflection
+
+**Benefits:**
+- **Declarative**: No need for factory patterns or manual routing
+- **Extensible**: Easy to add new request types by adding new annotated methods
+- **Maintainable**: Clear separation of concerns
+- **Spring-idiomatic**: Uses Spring's component scanning and dependency injection
 
 ### **Key Components**
 
 1. **`SimpleConnectController`** - REST API endpoints
-2. **`SimpleConnectService`** - Main service orchestration
-3. **`KycProcessor`** - ADD_KYC specific processing logic
-4. **`ExternalApiClient`** - Misc service configuration
-5. **`FenergoApiClient`** - Fenergo API integration
-6. **`RestTemplateConfig`** - HTTP client configuration
+2. **`SimpleConnectService`** - Main service orchestration with annotation-based processing
+3. **`KycProcessor`** - ADD_KYC specific processing logic using `@ProcessRequestType` annotation
+4. **`AnnotationBasedProcessorRegistry`** - Discovers and manages annotation-based processors
+5. **`ExternalApiClient`** - Misc service configuration
+6. **`FenergoApiClient`** - Fenergo API integration
+7. **`RestTemplateConfig`** - HTTP client configuration
 
 ## 📋 API Endpoints
 

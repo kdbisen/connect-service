@@ -4,6 +4,8 @@ import com.adyanta.connect.domain.document.ProcessingRequest;
 import com.adyanta.connect.domain.dto.ConnectRequestDto;
 import com.adyanta.connect.domain.dto.ConnectResponseDto;
 import com.adyanta.connect.domain.enums.ProcessingStatus;
+import com.adyanta.connect.processing.annotation.AnnotationBasedProcessorRegistry;
+import com.adyanta.connect.processing.annotation.AnnotationBasedProcessorRegistry.ProcessorMethod;
 import com.adyanta.connect.repository.ProcessingRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 public class SimpleConnectService {
     
     private final ProcessingRequestRepository requestRepository;
-    private final KycProcessor kycProcessor;
+    private final AnnotationBasedProcessorRegistry processorRegistry;
     
     /**
      * Process a connect request asynchronously (fire-and-forget)
@@ -89,14 +92,8 @@ public class SimpleConnectService {
             request.setUpdatedAt(LocalDateTime.now());
             requestRepository.save(request);
             
-            // Process based on request type
-            ProcessingRequest result;
-            if (request.getRequestType().name().equals("ADD_KYC")) {
-                result = kycProcessor.processAddKyc(request);
-            } else {
-                // Generic processing for other types
-                result = processGeneric(request);
-            }
+            // Process using annotation-based processor registry
+            ProcessingRequest result = processWithAnnotationBasedRegistry(request);
             
             // Save the result
             requestRepository.save(result);
@@ -117,17 +114,46 @@ public class SimpleConnectService {
     }
     
     /**
-     * Generic processing for non-KYC requests
+     * Process request using annotation-based processor registry
      */
-    private ProcessingRequest processGeneric(ProcessingRequest request) {
-        log.info("Processing generic request: {}", request.getRequestId());
-        
-        // Simple generic processing - just mark as completed
-        return request.toBuilder()
-                .status(ProcessingStatus.COMPLETED)
-                .processingEndTime(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+    private ProcessingRequest processWithAnnotationBasedRegistry(ProcessingRequest request) {
+        try {
+            log.info("Processing request using annotation-based registry: {}", request.getRequestId());
+            
+            // Find the appropriate processor method for this request type
+            Optional<ProcessorMethod> processorMethodOptional = processorRegistry.getProcessorMethod(request.getRequestType());
+            
+            if (processorMethodOptional.isPresent()) {
+                ProcessorMethod processorMethod = processorMethodOptional.get();
+                log.debug("Invoking processor method: {} for request type: {}",
+                        processorMethod.getMethod().getName(), request.getRequestType());
+                
+                // Invoke the method using reflection
+                ProcessingRequest result = (ProcessingRequest) processorMethod.getMethod().invoke(processorMethod.getBean(), request);
+                
+                log.info("Annotation-based processing completed for request: {}", request.getRequestId());
+                return result;
+            } else {
+                String errorMessage = "No annotation-based processor found for request type: " + request.getRequestType();
+                log.error(errorMessage);
+                return request.toBuilder()
+                        .status(ProcessingStatus.FAILED)
+                        .errorMessage(errorMessage)
+                        .processingEndTime(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+            }
+            
+        } catch (Exception error) {
+            log.error("Annotation-based processing failed for request: {}", request.getRequestId(), error);
+            return request.toBuilder()
+                    .status(ProcessingStatus.FAILED)
+                    .errorMessage(error.getMessage())
+                    .stackTrace(getStackTrace(error))
+                    .processingEndTime(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+        }
     }
     
     /**

@@ -4,8 +4,6 @@ import com.adyanta.connect.domain.document.ProcessingRequest;
 import com.adyanta.connect.domain.enums.ProcessingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,7 +22,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KycProcessor {
+public class KycProcessor_SIMPLE {
     
     private final RestTemplate restTemplate;
     private final ExternalApiClient externalApiClient;
