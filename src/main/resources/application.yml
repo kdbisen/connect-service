@@ -2,6 +2,10 @@ server:
   port: 8080
   servlet:
     context-path: /api
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
 
 spring:
   application:

@@ -21,7 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
+import java.util.concurrent.CompletableFuture;
 
 import jakarta.validation.Valid;
 
@@ -149,7 +149,7 @@ public class ConnectControllerV2 {
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public Mono<ResponseEntity<ConnectResponseDto>> processRequestV2(
+    public CompletableFuture<ResponseEntity<ConnectResponseDto>> processRequestV2(
             @Parameter(description = "Enhanced connect request details", required = true)
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Enhanced connect request with additional validation and metadata",
@@ -221,14 +221,26 @@ public class ConnectControllerV2 {
             request.getMetadata().put("apiVersion", "2.0");
         }
         
-        return connectService.processRequest(request)
-                .map(response -> {
+        return connectService.processRequestAsync(request)
+                .thenApply(response -> {
                     // Enhance response with v2 features
                     response.setVersion("2.0");
                     return ResponseEntity.accepted().body(response);
                 })
-                .doOnSuccess(response -> log.info("Enhanced request processing initiated v2: {}", response.getBody().getRequestId()))
-                .doOnError(error -> log.error("Failed to process enhanced request v2", error));
+                .exceptionally(error -> {
+                    log.error("Failed to process enhanced request v2", error);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(ConnectResponseDto.builder()
+                                    .requestId(request.getRequestId())
+                                    .status("ERROR")
+                                    .message("Failed to process enhanced request")
+                                    .timestamp(java.time.LocalDateTime.now())
+                                    .version("2.0")
+                                    .error(ConnectResponseDto.ErrorDetails.builder()
+                                            .message(error.getMessage())
+                                            .build())
+                                    .build());
+                });
     }
     
     /**
@@ -349,7 +361,7 @@ public class ConnectControllerV2 {
             value = "/status/{requestId}",
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public Mono<ResponseEntity<ConnectResponseDto>> getRequestStatusV2(
+    public ResponseEntity<ConnectResponseDto> getRequestStatusV2(
             @Parameter(description = "Unique request identifier", required = true, example = "req-123456-v2")
             @PathVariable String requestId,
             @Parameter(description = "Authentication context", hidden = true)
@@ -357,26 +369,25 @@ public class ConnectControllerV2 {
         
         log.debug("Getting enhanced status for request v2: {}", requestId);
         
-        return connectService.getRequestStatus(requestId)
-                .map(response -> {
-                    // Enhance response with v2 features
-                    response.setVersion("2.0");
-                    return ResponseEntity.ok(response);
-                })
-                .onErrorResume(error -> {
-                    log.error("Failed to get enhanced request status v2: {}", requestId, error);
-                    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(ConnectResponseDto.builder()
-                                    .requestId(requestId)
-                                    .status("ERROR")
-                                    .message("Request not found or error occurred with enhanced search")
-                                    .timestamp(java.time.LocalDateTime.now())
-                                    .version("2.0")
-                                    .error(ConnectResponseDto.ErrorDetails.builder()
-                                            .message(error.getMessage())
-                                            .build())
-                                    .build()));
-                });
+        try {
+            ConnectResponseDto response = connectService.getRequestStatus(requestId);
+            // Enhance response with v2 features
+            response.setVersion("2.0");
+            return ResponseEntity.ok(response);
+        } catch (Exception error) {
+            log.error("Failed to get enhanced request status v2: {}", requestId, error);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ConnectResponseDto.builder()
+                            .requestId(requestId)
+                            .status("ERROR")
+                            .message("Request not found or error occurred with enhanced search")
+                            .timestamp(java.time.LocalDateTime.now())
+                            .version("2.0")
+                            .error(ConnectResponseDto.ErrorDetails.builder()
+                                    .message(error.getMessage())
+                                    .build())
+                            .build());
+        }
     }
     
     /**
@@ -426,13 +437,13 @@ public class ConnectControllerV2 {
             )
     })
     @GetMapping("/health")
-    public Mono<ResponseEntity<ConnectResponseDto>> healthV2() {
-        return Mono.just(ResponseEntity.ok(ConnectResponseDto.builder()
+    public ResponseEntity<ConnectResponseDto> healthV2() {
+        return ResponseEntity.ok(ConnectResponseDto.builder()
                 .status("UP")
                 .message("Connect service v2 is running with enhanced monitoring")
                 .timestamp(java.time.LocalDateTime.now())
                 .version("2.0")
-                .build()));
+                .build());
     }
     
     /**
@@ -485,8 +496,8 @@ public class ConnectControllerV2 {
             )
     })
     @GetMapping("/version")
-    public Mono<ResponseEntity<Object>> getVersion() {
-        return Mono.just(ResponseEntity.ok(new Object() {
+    public ResponseEntity<Object> getVersion() {
+        return ResponseEntity.ok(new Object() {
             public final String version = "2.0";
             public final String apiName = "Connect Service API";
             public final String description = "Enhanced API for processing XML/JSON requests";
@@ -502,6 +513,6 @@ public class ConnectControllerV2 {
                 public final String v1SupportedUntil = "2025-12-31";
                 public final String migrationGuide = "https://docs.adyanta.com/connect-service/migration/v1-to-v2";
             };
-        }));
+        });
     }
 }

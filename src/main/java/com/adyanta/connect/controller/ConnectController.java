@@ -21,7 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
+import java.util.concurrent.CompletableFuture;
 
 import jakarta.validation.Valid;
 
@@ -126,7 +126,7 @@ public class ConnectController {
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public Mono<ResponseEntity<ConnectResponseDto>> processRequest(
+    public CompletableFuture<ResponseEntity<ConnectResponseDto>> processRequest(
             @Parameter(description = "Connect request details", required = true)
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Connect request with payload and metadata",
@@ -201,10 +201,21 @@ public class ConnectController {
         
         log.info("Received connect request from client: {}", request.getClientId());
         
-        return connectService.processRequest(request)
-                .map(response -> ResponseEntity.accepted().body(response))
-                .doOnSuccess(response -> log.info("Request processing initiated: {}", response.getBody().getRequestId()))
-                .doOnError(error -> log.error("Failed to process request", error));
+        return connectService.processRequestAsync(request)
+                .thenApply(response -> ResponseEntity.accepted().body(response))
+                .exceptionally(error -> {
+                    log.error("Failed to process request", error);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(ConnectResponseDto.builder()
+                                    .requestId(request.getRequestId())
+                                    .status("ERROR")
+                                    .message("Failed to process request")
+                                    .timestamp(java.time.LocalDateTime.now())
+                                    .error(ConnectResponseDto.ErrorDetails.builder()
+                                            .message(error.getMessage())
+                                            .build())
+                                    .build());
+                });
     }
     
     /**
@@ -330,7 +341,7 @@ public class ConnectController {
             value = "/status/{requestId}",
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public Mono<ResponseEntity<ConnectResponseDto>> getRequestStatus(
+    public ResponseEntity<ConnectResponseDto> getRequestStatus(
             @Parameter(description = "Unique request identifier", required = true, example = "req-123456")
             @PathVariable String requestId,
             @Parameter(description = "Authentication context", hidden = true)
@@ -338,21 +349,22 @@ public class ConnectController {
         
         log.debug("Getting status for request: {}", requestId);
         
-        return connectService.getRequestStatus(requestId)
-                .map(response -> ResponseEntity.ok(response))
-                .onErrorResume(error -> {
-                    log.error("Failed to get request status: {}", requestId, error);
-                    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(ConnectResponseDto.builder()
-                                    .requestId(requestId)
-                                    .status("ERROR")
-                                    .message("Request not found or error occurred")
-                                    .timestamp(java.time.LocalDateTime.now())
-                                    .error(ConnectResponseDto.ErrorDetails.builder()
-                                            .message(error.getMessage())
-                                            .build())
-                                    .build()));
-                });
+        try {
+            ConnectResponseDto response = connectService.getRequestStatus(requestId);
+            return ResponseEntity.ok(response);
+        } catch (Exception error) {
+            log.error("Failed to get request status: {}", requestId, error);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ConnectResponseDto.builder()
+                            .requestId(requestId)
+                            .status("ERROR")
+                            .message("Request not found or error occurred")
+                            .timestamp(java.time.LocalDateTime.now())
+                            .error(ConnectResponseDto.ErrorDetails.builder()
+                                    .message(error.getMessage())
+                                    .build())
+                            .build());
+        }
     }
     
     /**
@@ -386,11 +398,11 @@ public class ConnectController {
             )
     })
     @GetMapping("/health")
-    public Mono<ResponseEntity<ConnectResponseDto>> health() {
-        return Mono.just(ResponseEntity.ok(ConnectResponseDto.builder()
+    public ResponseEntity<ConnectResponseDto> health() {
+        return ResponseEntity.ok(ConnectResponseDto.builder()
                 .status("UP")
                 .message("Connect service is running")
                 .timestamp(java.time.LocalDateTime.now())
-                .build()));
+                .build());
     }
 }

@@ -3,7 +3,7 @@ package com.adyanta.connect;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.data.mongodb.config.EnableReactiveMongoAuditing;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 
 /**
@@ -18,7 +18,7 @@ import org.springframework.integration.annotation.IntegrationComponentScan;
  */
 @SpringBootApplication
 @EnableCaching
-@EnableReactiveMongoAuditing
+@EnableMongoAuditing
 @IntegrationComponentScan
 public class ConnectServiceApplication {
 
