@@ -1,0 +1,85 @@
+{
+  "entityType": "Individual",
+  "version": "1.0",
+  "mappings": [
+    {
+      "fenergoPath": "DataGroups.PersonalDetails.FirstName",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/personal/firstName",
+      "lookupName": null,
+      "multi": false,
+      "transform": "capitalize",
+      "required": true,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.PersonalDetails.LastName",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/personal/lastName",
+      "lookupName": null,
+      "multi": false,
+      "transform": "capitalize",
+      "required": true,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.PersonalDetails.DOB",
+      "fenergoType": "DATE",
+      "xmlPath": "/root/entity/personal/dob",
+      "lookupName": null,
+      "multi": false,
+      "transform": "date:yyyy-MM-dd",
+      "required": false,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Address.Country",
+      "fenergoType": "LOOKUP",
+      "xmlPath": "/root/entity/address/country",
+      "lookupName": "Country",
+      "multi": false,
+      "transform": "upper",
+      "required": true,
+      "defaultValue": "IN",
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Identification.IdType",
+      "fenergoType": "LOOKUP",
+      "xmlPath": "/root/entity/identification/idType",
+      "lookupName": "IdTypes",
+      "multi": false,
+      "transform": null,
+      "required": true,
+      "defaultValue": "Passport",
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Identification.IdNumber",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/identification/idNumber",
+      "lookupName": null,
+      "multi": false,
+      "transform": "trim",
+      "required": true,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    }
+  ]
+}
+

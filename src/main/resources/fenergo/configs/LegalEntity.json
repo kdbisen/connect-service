@@ -1,0 +1,111 @@
+{
+  "entityType": "LegalEntity",
+  "version": "1.0",
+  "mappings": [
+    {
+      "fenergoPath": "DataGroups.Name.LegalName",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/name/legalName",
+      "lookupName": null,
+      "multi": false,
+      "transform": "trim",
+      "required": true,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Name.ShortName",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/name/shortName",
+      "lookupName": null,
+      "multi": false,
+      "transform": "trim",
+      "required": false,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Address.Country",
+      "fenergoType": "LOOKUP",
+      "xmlPath": "/root/entity/address/country",
+      "lookupName": "Country",
+      "multi": false,
+      "transform": "upper",
+      "required": true,
+      "defaultValue": "IN",
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Address.City",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/address/city",
+      "lookupName": null,
+      "multi": false,
+      "transform": "capitalize",
+      "required": false,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Identification.IdType",
+      "fenergoType": "LOOKUP",
+      "xmlPath": "/root/entity/identification/idType",
+      "lookupName": "IdTypes",
+      "multi": false,
+      "transform": null,
+      "required": true,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Identification.IdNumber",
+      "fenergoType": "TEXT",
+      "xmlPath": "/root/entity/identification/idNumber",
+      "lookupName": null,
+      "multi": false,
+      "transform": "trim",
+      "required": true,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Risk.RiskRating",
+      "fenergoType": "LOOKUP",
+      "xmlPath": "/root/entity/risk/rating",
+      "lookupName": "RiskRating",
+      "multi": false,
+      "transform": "capitalize",
+      "required": true,
+      "defaultValue": "Low",
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    },
+    {
+      "fenergoPath": "DataGroups.Business.Sectors",
+      "fenergoType": "MULTI_LOOKUP",
+      "xmlPath": "/root/entity/business/sectors/sector",
+      "lookupName": "BusinessSectors",
+      "multi": true,
+      "transform": "capitalize",
+      "required": false,
+      "defaultValue": null,
+      "condition": null,
+      "validation": null,
+      "errorHandling": null
+    }
+  ]
+}
+
